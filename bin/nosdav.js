@@ -1,12 +1,19 @@
 #!/usr/bin/env node
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const url = require('url');
 const path = require('path');
 
 const port = 3008;
 const rootDir = 'data';
+
+const options = {
+  key: fs.readFileSync(process.argv[2]),
+  cert: fs.readFileSync(process.argv[3])
+};
+
 
 const isValidNostr = (nostr) => {
   return /^[0-9a-f]{64}$/.test(nostr);
@@ -30,7 +37,7 @@ const getContentType = (ext) => {
   }
 };
 
-const server = http.createServer((req, res) => {
+const server = https.createServer(options, (req, res) => {
   const { method, url: reqUrl, headers } = req;
   const { pathname } = url.parse(reqUrl);
   const targetDir = path.dirname(pathname);
