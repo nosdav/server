@@ -42,8 +42,23 @@ const server = https.createServer(options, (req, res) => {
   const { pathname } = url.parse(reqUrl);
   const targetDir = path.dirname(pathname);
 
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT');
+
+  // Set CORS options
+  const corsOptions = {
+    origin: 'https://example.com',
+    methods: ['GET', 'PUT'],
+    allowedHeaders: ['Content-Type']
+  };
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, corsOptions);
+    res.end();
+    return;
+  }
+
 
   if (method === 'PUT') {
     const nostr = headers.authorization.replace('Nostr ', '')
