@@ -44,6 +44,9 @@ const server = https.createServer(options, (req, res) => {
 
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
 
   // Set CORS options
   const corsOptions = {
