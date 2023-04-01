@@ -42,6 +42,9 @@ const server = https.createServer(options, (req, res) => {
   const { pathname } = url.parse(reqUrl);
   const targetDir = path.dirname(pathname);
 
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT');
+
   if (method === 'PUT') {
     const nostr = headers.authorization.replace('Nostr ', '')
     console.log(nostr)
