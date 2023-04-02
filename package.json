@@ -1,6 +1,6 @@
 {
   "name": "nosdav-server",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "nosdav server",
   "main": "index.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
+    "nostr-tools": "^1.8.1",
     "path": "^0.12.7",
     "url": "^0.11.0"
   }

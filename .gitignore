@@ -101,4 +101,9 @@ dist
 .dynamodb/
 
 # TernJS port file
+
+# custom
+data/
+fullchain.pem
+privkey.pem
 .tern-port

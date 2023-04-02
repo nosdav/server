@@ -6,6 +6,10 @@ const fs = require('fs');
 const url = require('url');
 const path = require('path');
 
+
+const { verifySignature } = require('nostr-tools');
+
+
 const port = 3008;
 const rootDir = 'data';
 
@@ -18,6 +22,25 @@ const options = {
 const isValidNostr = (nostr) => {
   return /^[0-9a-f]{64}$/.test(nostr);
 };
+
+const isValidAuthorizationHeader = (authorization) => {
+
+  console.log('authorization', authorization)
+  const base64String = authorization.replace('Nostr ', '')
+
+  // Decode the base64-encoded string and parse the JSON object
+  const decodedString = Buffer.from(base64String, "base64").toString("utf-8");
+  const event = JSON.parse(decodedString);
+
+  // Print the object
+  console.log(event);
+
+  const isVerified = verifySignature(event);
+  if (isVerified) {
+    return event.pubkey
+  }
+
+}
 
 const isValidTargetDir = (targetDir, nostr) => {
   const targetSegments = targetDir.split('/').filter(segment => segment !== '');
@@ -68,7 +91,11 @@ const server = https.createServer(options, (req, res) => {
     console.log(nostr)
 
     // Check for the "nostr" header and validate its format
-    if (!nostr || !isValidNostr(nostr)) {
+    // if (!nostr || !isValidNostr(nostr)) {
+
+    var pubkey = isValidAuthorizationHeader(headers.authorization)
+    if (!nostr || !pubkey) {
+
       res.statusCode = 401;
       res.end('Unauthorized: "nostr" header must be a 32 character lowercase hex string');
       console.log('Unauthorized: "nostr" header must be a 32 character lowercase hex string');
@@ -77,7 +104,7 @@ const server = https.createServer(options, (req, res) => {
     }
 
     // Check if the target directory is valid
-    if (!isValidTargetDir(targetDir, nostr.replace('Nostr ', ''))) {
+    if (!isValidTargetDir(targetDir, pubkey)) {
       res.statusCode = 403;
       res.end('Forbidden: Target directory structure is invalid');
       console.log('Forbidden: Target directory structure is invalid', targetDir, nostr);
@@ -113,6 +140,8 @@ const server = https.createServer(options, (req, res) => {
     });
   } else if (method === 'GET') {
     const targetPath = path.join('.', rootDir, pathname);
+
+
 
     // Read the file
     fs.readFile(targetPath, (err, data) => {
