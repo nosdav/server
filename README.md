@@ -61,9 +61,9 @@ openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes
 Start the server:
 
 ```bash
-node server.js private-key.pem fullchain.pem
+node server.js private-key.pem fullchain.pem node [<your-port>]
 ```
-The server will listen for incoming requests at https://localhost:3008.
+The server will listen for incoming requests at https://localhost:3008 if port is not set
 
 ## API Endpoints
 

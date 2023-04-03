@@ -10,7 +10,7 @@ const path = require('path');
 const { verifySignature } = require('nostr-tools');
 
 
-const port = 3008;
+const port = process.argv[4] ? parseInt(process.argv[4]) : 3118;
 const rootDir = 'data';
 
 const options = {
