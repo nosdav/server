@@ -103,6 +103,19 @@ const server = https.createServer(options, (req, res) => {
       return
     }
 
+    // check pubkey
+    if (targetDir !== '/' + pubkey) {
+      res.statusCode = 403
+      res.end('Forbidden: wrong pubkey')
+      console.error(
+        'Forbidden: wrong pubkey',
+        targetDir,
+        pubkey
+      )
+      return
+    }
+
+
     // Check if the target directory is valid
     if (!isValidTargetDir(targetDir, pubkey)) {
       res.statusCode = 403
