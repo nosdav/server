@@ -75,7 +75,7 @@ Header: Authorization: Nostr base64(NostrEvent)
 {
   "kind": 27235,
   "created_at": "Math.floor(http://Date.now() / 1000)",
-  "tags": [["url", "path"]],
+  "tags": [["u", "path"]],
   "content": ""
 }
 ```
