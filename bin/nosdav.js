@@ -64,7 +64,10 @@ function setCorsHeaders(res) {
 const server = https.createServer(options, (req, res) => {
   const { method, url: reqUrl, headers } = req
   const { pathname } = url.parse(reqUrl)
-  const targetDir = path.dirname(pathname)
+  // const targetDir = path.dirname(pathname)
+  const targetDir = path.dirname(pathname).split(path.sep)[1]
+  console.log('targetDir', targetDir)
+
 
   // Set CORS headers
   setCorsHeaders(res)
@@ -104,7 +107,7 @@ const server = https.createServer(options, (req, res) => {
     }
 
     // check pubkey
-    if (targetDir !== '/' + pubkey) {
+    if (targetDir !== pubkey) {
       res.statusCode = 403
       res.end('Forbidden: wrong pubkey')
       console.error(
