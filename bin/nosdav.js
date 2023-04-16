@@ -12,8 +12,8 @@ const port = process.argv[4] ? parseInt(process.argv[4]) : 3118
 const rootDir = 'data'
 
 const options = {
-  key: fs.readFileSync(process.argv[2]),
-  cert: fs.readFileSync(process.argv[3])
+  key: fs.readFileSync(process.argv[2] || './privkey.pem'),
+  cert: fs.readFileSync(process.argv[3] || './fullchain.pem')
 }
 
 const isValidNostr = nostr => {
