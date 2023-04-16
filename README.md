@@ -114,7 +114,7 @@ docker run -d -p 3118:3118 nosdav
 To persist the data directory across container restarts or removals, you can use the --mount flag to create a volume and mount it to the container:
 
 ```bash
-docker run -d -p 3118:3118 --mount type=volume,source=my-data,destination=data nosdav
+docker run -d -p 3118:3118 --mount type=bind,source=my-data,destination=/usr/src/app/data nosdav
 ```
 
 Replace my-data with your preferred volume name.
