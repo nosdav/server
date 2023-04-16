@@ -63,7 +63,7 @@ Start the server:
 ```bash
 node server.js private-key.pem fullchain.pem node [<your-port>]
 ```
-The server will listen for incoming requests at https://localhost:3008 if port is not set
+The server will listen for incoming requests at https://localhost:3118 if port is not set
 
 ## API Endpoints
 
@@ -85,6 +85,41 @@ Content-Type can vary according to the file being uploaded.
 
 ### GET /:nostrid/:filename
 Download a file by its name for a specific Nostr.
+
+
+## Docker
+
+### Building the Docker Image
+
+First, you need to build the Docker image for the server. Navigate to the root directory of the project, where the Dockerfile is located, and run the following command:
+
+```
+docker build -t nosdav .
+```
+
+### Running the Server with Docker
+
+Now that you have built the Docker image, you can run a container using that image. You can map the port and mount a volume to persist the data directory.
+
+### Mapping the Port
+
+Use the -p flag to map the host port to the container port. In this case, we'll map the host port 3118 to the container port 3118:
+
+```bash
+docker run -d -p 3118:3118 nosdav
+```
+
+### Mounting a Volume for Data Storage
+
+To persist the data directory across container restarts or removals, you can use the --mount flag to create a volume and mount it to the container:
+
+```bash
+docker run -d -p 3118:3118 --mount type=volume,source=my-data,destination=data nosdav
+```
+
+Replace my-data with your preferred volume name.
+
+Now your server is up and running with Docker. You can access it on your host machine at http://localhost:3118.
 
 ## Contributing
 
