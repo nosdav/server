@@ -23,6 +23,7 @@ RUN openssl req \
 
 # Copy the server script to the working directory
 COPY bin/nosdav.js ./bin/
+COPY index.js ./
 
 # Expose the server port
 EXPOSE 3118

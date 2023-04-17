@@ -1,4 +1,11 @@
 const { verifySignature } = require('nostr-tools')
+const http = require('http')
+const https = require('https')
+const fs = require('fs')
+const url = require('url')
+const path = require('path')
+
+const rootDir = 'data'
 
 /**
  * Returns the content type based on the given file extension.
@@ -19,11 +26,23 @@ const getContentType = ext => {
   }
 }
 
+/**
+ * Checks if the target directory is valid based on the given nostr value.
+ *
+ * @param {string} targetDir - The target directory.
+ * @param {string} nostr - The nostr value.
+ * @returns {boolean} True if the target directory is valid, false otherwise.
+ */
 const isValidTargetDir = (targetDir, nostr) => {
   const targetSegments = targetDir.split('/').filter(segment => segment !== '')
   return targetSegments.length === 1 && targetSegments[0] === nostr
 }
 
+/**
+ * Sets CORS headers for the given response object.
+ *
+ * @param {http.ServerResponse} res - The response object.
+ */
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
@@ -53,6 +72,12 @@ function isValidAuthorizationHeader(authorization) {
   }
 }
 
+/**
+ * Handles preflight OPTIONS requests and sets CORS options.
+ *
+ * @param {http.IncomingMessage} req - The request object.
+ * @param {http.ServerResponse} res - The response object.
+ */
 function handleOptions(req, res) {
   // Set CORS options
   const corsOptions = {
@@ -66,7 +91,17 @@ function handleOptions(req, res) {
 
 }
 
-function handlePut(req, res, path, headers, targetDir, rootDir) {
+/**
+ * Handles PUT requests to save a file to the server.
+ *
+ * @param {http.IncomingMessage} req - The request object.
+ * @param {http.ServerResponse} res - The response object.
+ * @param {string} pathname - The target file's path.
+ * @param {Object} headers - The request headers.
+ * @param {string} targetDir - The target directory for saving the file.
+ * @param {string} rootDir - The root directory for all files.
+ */
+function handlePut(req, res, path, headers, targetDir, rootDir, pathname, path) {
   const nostr = headers.authorization.replace('Nostr ', '')
   console.log(nostr)
 
@@ -141,7 +176,14 @@ function handlePut(req, res, path, headers, targetDir, rootDir) {
 
 }
 
-function handleGet(req, res, path) {
+/**
+ * Handles GET requests to read and return the contents of a file.
+ *
+ * @param {http.IncomingMessage} req - The request object.
+ * @param {http.ServerResponse} res - The response object.
+ * @param {string} pathname - The requested file's path.
+ */
+function handleGet(req, res, path, pathname, rootDir) {
   const targetPath = path.join('.', rootDir, pathname)
 
   // Read the file
