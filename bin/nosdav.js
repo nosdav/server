@@ -1,29 +1,51 @@
 #!/usr/bin/env node
 
-// requires
+// Required modules
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
-const url = require('url')
-const path = require('path')
+const minimist = require('minimist')
 
-const { getContentType, setCorsHeaders, isValidAuthorizationHeader, isValidTargetDir, handlePut, handleGet, handleOptions, handleRequest } = require('../index.js')
+// Custom library
+const {
+  handleRequest
+} = require('../index.js')
 
-// args
-const port = process.argv[4] ? parseInt(process.argv[4]) : 3118
-const rootDir = 'data'
+// Parse command line arguments
+const argv = minimist(process.argv.slice(2), {
+  default: {
+    key: './privkey.pem',
+    cert: './fullchain.pem',
+    port: 3118,
+    root: 'data',
+    https: true
+  },
+  alias: {
+    k: 'key',
+    c: 'cert',
+    p: 'port',
+    r: 'root',
+    s: 'https'
+  }
+})
 
-const options = {
-  key: fs.readFileSync(process.argv[2] || './privkey.pem'),
-  cert: fs.readFileSync(process.argv[3] || './fullchain.pem')
-}
+// SSL options
+const sslOptions = argv.https
+  ? {
+    key: fs.readFileSync(argv.key),
+    cert: fs.readFileSync(argv.cert)
+  }
+  : null
 
+// Create a server (HTTP or HTTPS) with the provided request handler
+const server = argv.https
+  ? https.createServer(sslOptions, handleRequest)
+  : http.createServer(handleRequest)
 
-// server
-const server = https.createServer(options, handleRequest)
-
-
-// start server
-server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`)
+// Start the server and listen on the specified port
+server.listen(argv.port, () => {
+  console.log(
+    `Server running at ${argv.https ? 'https' : 'http'}://localhost:${argv.port
+    }`
+  )
 })

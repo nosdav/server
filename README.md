@@ -61,9 +61,20 @@ openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes
 Start the server:
 
 ```bash
-node server.js private-key.pem fullchain.pem node [<your-port>]
+node server.js --key private-key.pem --cert fullchain.pem --port your_port
 ```
+
+Options
+
+    -k or --key: The path to the private key file. Default: './privkey.pem'
+    -c or --cert: The path to the certificate file. Default: './fullchain.pem'
+    -p or --port: The port on which the server should listen. Default: 3118
+    -r or --root: The root directory for file storage. Default: 'data'
+    -s or --https: A flag to enable HTTPS. Default: true (HTTPS)
+
 The server will listen for incoming requests at https://localhost:3118 if port is not set
+
+
 
 ## API Endpoints
 
