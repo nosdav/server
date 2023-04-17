@@ -6,7 +6,7 @@ const https = require('https')
 const fs = require('fs')
 const url = require('url')
 const path = require('path')
-const { getContentType, setCorsHeaders, isValidAuthorizationHeader, isValidTargetDir } = require('../index.js').getContentType
+const { getContentType, setCorsHeaders, isValidAuthorizationHeader, isValidTargetDir, handlePut, handleGet, handleOptions } = require('../index.js')
 
 // args
 const port = process.argv[4] ? parseInt(process.argv[4]) : 3118
@@ -29,21 +29,11 @@ const server = https.createServer(options, (req, res) => {
   // Set CORS headers
   setCorsHeaders(res)
 
-  // Set CORS options
-  const corsOptions = {
-    origin: 'https://example.com',
-    methods: ['GET', 'PUT'],
-    allowedHeaders: ['Content-Type']
-  }
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, corsOptions)
-    res.end()
-    return
-  }
-
-  if (method === 'PUT') {
+    handleOptions(req, res)
+  } else if (method === 'PUT') {
     handlePut(req, res, pathname, headers, targetDir, rootDir)
   } else if (method === 'GET') {
     handleGet(req, res, path)
@@ -54,99 +44,6 @@ const server = https.createServer(options, (req, res) => {
   }
 })
 
-function handlePut(req, res, path, headers, targetDir, rootDir) {
-  const nostr = headers.authorization.replace('Nostr ', '')
-  console.log(nostr)
-
-  // Check for the "nostr" header and validate its format
-  // if (!nostr || !isValidNostr(nostr)) {
-
-  var pubkey = isValidAuthorizationHeader(headers.authorization)
-  if (!nostr || !pubkey) {
-    res.statusCode = 401
-    res.end(
-      'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
-    )
-    console.log(
-      'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
-    )
-
-    return
-  }
-
-  // check pubkey
-  if (targetDir !== pubkey) {
-    res.statusCode = 403
-    res.end('Forbidden: wrong pubkey')
-    console.error(
-      'Forbidden: wrong pubkey',
-      targetDir,
-      pubkey
-    )
-    return
-  }
-
-
-  // Check if the target directory is valid
-  if (!isValidTargetDir(targetDir, pubkey)) {
-    res.statusCode = 403
-    res.end('Forbidden: Target directory structure is invalid')
-    console.log(
-      'Forbidden: Target directory structure is invalid',
-      targetDir,
-      nostr
-    )
-    return
-  }
-
-  const targetPath = path.join('.', rootDir, pathname)
-
-  // Ensure target directory exists
-  fs.mkdir(path.dirname(targetPath), { recursive: true }, err => {
-    if (err) {
-      console.error(err)
-      res.statusCode = 500
-      res.end('Error creating directory')
-      console.log('Error creating directory')
-      return
-    }
-
-    // Save the file
-    const writeStream = fs.createWriteStream(targetPath)
-    req.pipe(writeStream)
-    writeStream.on('finish', () => {
-      res.statusCode = 201
-      res.end('File created')
-      console.log('File created')
-    })
-    writeStream.on('error', err => {
-      console.error(err)
-      res.statusCode = 500
-      res.end('Error writing file')
-      console.log('Error writing file')
-    })
-  })
-
-}
-
-function handleGet(req, res, path) {
-  const targetPath = path.join('.', rootDir, pathname)
-
-  // Read the file
-  fs.readFile(targetPath, (err, data) => {
-    if (err) {
-      console.error(err)
-      res.statusCode = 404
-      res.end('File not found')
-      console.log('File not found')
-    } else {
-      const contentType = getContentType(path.extname(targetPath))
-      res.setHeader('Content-Type', contentType)
-      res.statusCode = 200
-      res.end(data)
-    }
-  })
-}
 
 
 // start server
