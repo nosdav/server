@@ -44,100 +44,110 @@ const server = https.createServer(options, (req, res) => {
   }
 
   if (method === 'PUT') {
-    const nostr = headers.authorization.replace('Nostr ', '')
-    console.log(nostr)
-
-    // Check for the "nostr" header and validate its format
-    // if (!nostr || !isValidNostr(nostr)) {
-
-    var pubkey = isValidAuthorizationHeader(headers.authorization)
-    if (!nostr || !pubkey) {
-      res.statusCode = 401
-      res.end(
-        'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
-      )
-      console.log(
-        'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
-      )
-
-      return
-    }
-
-    // check pubkey
-    if (targetDir !== pubkey) {
-      res.statusCode = 403
-      res.end('Forbidden: wrong pubkey')
-      console.error(
-        'Forbidden: wrong pubkey',
-        targetDir,
-        pubkey
-      )
-      return
-    }
-
-
-    // Check if the target directory is valid
-    if (!isValidTargetDir(targetDir, pubkey)) {
-      res.statusCode = 403
-      res.end('Forbidden: Target directory structure is invalid')
-      console.log(
-        'Forbidden: Target directory structure is invalid',
-        targetDir,
-        nostr
-      )
-      return
-    }
-
-    const targetPath = path.join('.', rootDir, pathname)
-
-    // Ensure target directory exists
-    fs.mkdir(path.dirname(targetPath), { recursive: true }, err => {
-      if (err) {
-        console.error(err)
-        res.statusCode = 500
-        res.end('Error creating directory')
-        console.log('Error creating directory')
-        return
-      }
-
-      // Save the file
-      const writeStream = fs.createWriteStream(targetPath)
-      req.pipe(writeStream)
-      writeStream.on('finish', () => {
-        res.statusCode = 201
-        res.end('File created')
-        console.log('File created')
-      })
-      writeStream.on('error', err => {
-        console.error(err)
-        res.statusCode = 500
-        res.end('Error writing file')
-        console.log('Error writing file')
-      })
-    })
+    handlePut(req, res, pathname, headers, targetDir, rootDir)
   } else if (method === 'GET') {
-    const targetPath = path.join('.', rootDir, pathname)
-
-    // Read the file
-    fs.readFile(targetPath, (err, data) => {
-      if (err) {
-        console.error(err)
-        res.statusCode = 404
-        res.end('File not found')
-        console.log('File not found')
-      } else {
-        const contentType = getContentType(path.extname(targetPath))
-        res.setHeader('Content-Type', contentType)
-        res.statusCode = 200
-        res.end(data)
-      }
-    })
+    handleGet(req, res, path)
   } else {
     res.statusCode = 405
     res.end('Method not allowed')
     console.log('Method not allowed')
   }
 })
+
+function handlePut(req, res, path, headers, targetDir, rootDir) {
+  const nostr = headers.authorization.replace('Nostr ', '')
+  console.log(nostr)
+
+  // Check for the "nostr" header and validate its format
+  // if (!nostr || !isValidNostr(nostr)) {
+
+  var pubkey = isValidAuthorizationHeader(headers.authorization)
+  if (!nostr || !pubkey) {
+    res.statusCode = 401
+    res.end(
+      'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
+    )
+    console.log(
+      'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
+    )
+
+    return
+  }
+
+  // check pubkey
+  if (targetDir !== pubkey) {
+    res.statusCode = 403
+    res.end('Forbidden: wrong pubkey')
+    console.error(
+      'Forbidden: wrong pubkey',
+      targetDir,
+      pubkey
+    )
+    return
+  }
+
+
+  // Check if the target directory is valid
+  if (!isValidTargetDir(targetDir, pubkey)) {
+    res.statusCode = 403
+    res.end('Forbidden: Target directory structure is invalid')
+    console.log(
+      'Forbidden: Target directory structure is invalid',
+      targetDir,
+      nostr
+    )
+    return
+  }
+
+  const targetPath = path.join('.', rootDir, pathname)
+
+  // Ensure target directory exists
+  fs.mkdir(path.dirname(targetPath), { recursive: true }, err => {
+    if (err) {
+      console.error(err)
+      res.statusCode = 500
+      res.end('Error creating directory')
+      console.log('Error creating directory')
+      return
+    }
+
+    // Save the file
+    const writeStream = fs.createWriteStream(targetPath)
+    req.pipe(writeStream)
+    writeStream.on('finish', () => {
+      res.statusCode = 201
+      res.end('File created')
+      console.log('File created')
+    })
+    writeStream.on('error', err => {
+      console.error(err)
+      res.statusCode = 500
+      res.end('Error writing file')
+      console.log('Error writing file')
+    })
+  })
+
+}
+
+function handleGet(req, res, path) {
+  const targetPath = path.join('.', rootDir, pathname)
+
+  // Read the file
+  fs.readFile(targetPath, (err, data) => {
+    if (err) {
+      console.error(err)
+      res.statusCode = 404
+      res.end('File not found')
+      console.log('File not found')
+    } else {
+      const contentType = getContentType(path.extname(targetPath))
+      res.setHeader('Content-Type', contentType)
+      res.statusCode = 200
+      res.end(data)
+    }
+  })
+}
+
 
 // start server
 server.listen(port, () => {
