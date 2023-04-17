@@ -7,7 +7,7 @@ const fs = require('fs')
 const url = require('url')
 const path = require('path')
 
-const { getContentType, setCorsHeaders, isValidAuthorizationHeader, isValidTargetDir, handlePut, handleGet, handleOptions } = require('../index.js')
+const { getContentType, setCorsHeaders, isValidAuthorizationHeader, isValidTargetDir, handlePut, handleGet, handleOptions, handleRequest } = require('../index.js')
 
 // args
 const port = process.argv[4] ? parseInt(process.argv[4]) : 3118
@@ -18,33 +18,6 @@ const options = {
   cert: fs.readFileSync(process.argv[3] || './fullchain.pem')
 }
 
-function handleRequest(req, res) {
-
-  const { method, url: reqUrl, headers } = req
-  const { pathname } = url.parse(reqUrl)
-  // const targetDir = path.dirname(pathname)
-  const targetDir = path.dirname(pathname).split(path.sep)[1]
-  console.log('targetDir', targetDir)
-
-
-  // Set CORS headers
-  setCorsHeaders(res)
-
-
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    handleOptions(req, res)
-  } else if (method === 'PUT') {
-    handlePut(req, res, pathname, headers, targetDir, rootDir, pathname, path)
-  } else if (method === 'GET') {
-    handleGet(req, res, path, pathname, rootDir)
-  } else {
-    res.statusCode = 405
-    res.end('Method not allowed')
-    console.log('Method not allowed')
-  }
-
-}
 
 // server
 const server = https.createServer(options, handleRequest)

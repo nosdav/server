@@ -202,6 +202,40 @@ function handleGet(req, res, path, pathname, rootDir) {
   })
 }
 
+/**
+ * Handles incoming HTTP requests and routes them to the appropriate handler based on the request method.
+ *
+ * @param {http.IncomingMessage} req - The request object.
+ * @param {http.ServerResponse} res - The response object.
+ */
+function handleRequest(req, res) {
+
+  const { method, url: reqUrl, headers } = req
+  const { pathname } = url.parse(reqUrl)
+  // const targetDir = path.dirname(pathname)
+  const targetDir = path.dirname(pathname).split(path.sep)[1]
+  console.log('targetDir', targetDir)
+
+
+  // Set CORS headers
+  setCorsHeaders(res)
+
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    handleOptions(req, res)
+  } else if (method === 'PUT') {
+    handlePut(req, res, pathname, headers, targetDir, rootDir, pathname, path)
+  } else if (method === 'GET') {
+    handleGet(req, res, path, pathname, rootDir)
+  } else {
+    res.statusCode = 405
+    res.end('Method not allowed')
+    console.log('Method not allowed')
+  }
+
+}
+
 
 module.exports = {
   getContentType: getContentType,
@@ -210,5 +244,6 @@ module.exports = {
   isValidTargetDir: isValidTargetDir,
   handleOptions: handleOptions,
   handlePut: handlePut,
-  handleGet: handleGet
+  handleGet: handleGet,
+  handleRequest: handleRequest
 }
