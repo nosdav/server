@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
+// requires
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const url = require('url')
 const path = require('path')
+const { getContentType, setCorsHeaders, isValidAuthorizationHeader, isValidTargetDir } = require('../index.js').getContentType
 
-const { verifySignature } = require('nostr-tools')
-
+// args
 const port = process.argv[4] ? parseInt(process.argv[4]) : 3118
 const rootDir = 'data'
 
@@ -16,51 +17,7 @@ const options = {
   cert: fs.readFileSync(process.argv[3] || './fullchain.pem')
 }
 
-const isValidNostr = nostr => {
-  return /^[0-9a-f]{64}$/.test(nostr)
-}
-
-const isValidAuthorizationHeader = authorization => {
-  console.log('authorization', authorization)
-  const base64String = authorization.replace('Nostr ', '')
-
-  // Decode the base64-encoded string and parse the JSON object
-  const decodedString = Buffer.from(base64String, 'base64').toString('utf-8')
-  const event = JSON.parse(decodedString)
-
-  // Print the object
-  console.log(event)
-
-  const isVerified = verifySignature(event)
-  if (isVerified) {
-    return event.pubkey
-  }
-}
-
-const isValidTargetDir = (targetDir, nostr) => {
-  const targetSegments = targetDir.split('/').filter(segment => segment !== '')
-  return targetSegments.length === 1 && targetSegments[0] === nostr
-}
-
-const getContentType = ext => {
-  switch (ext) {
-    case '.txt':
-      return 'text/plain'
-    case '.html':
-      return 'text/html'
-    case '.json':
-      return 'application/json'
-    default:
-      return 'application/octet-stream'
-  }
-}
-
-function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-}
-
+// server
 const server = https.createServer(options, (req, res) => {
   const { method, url: reqUrl, headers } = req
   const { pathname } = url.parse(reqUrl)
@@ -182,6 +139,7 @@ const server = https.createServer(options, (req, res) => {
   }
 })
 
+// start server
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`)
 })
