@@ -132,7 +132,7 @@ function handleOptions(req, res) {
  * @param {string} targetDir - The target directory for saving the file.
  * @param {string} rootDir - The root directory for all files.
  */
-function handlePut(req, res, headers, targetDir, rootDir, pathname, mode) {
+function handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owner) {
   const nostr = headers.authorization.replace('Nostr ', '')
   console.log(nostr)
 
