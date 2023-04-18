@@ -14,4 +14,11 @@ if [ ! -f "$PRIVKEY_PATH" ] || [ ! -f "$FULLCHAIN_PATH" ]; then
 fi
 
 echo "Starting server..."
-./nosdav.js
+
+# Find the path of the current script
+SCRIPT_PATH="$(readlink -f "$0")"
+# Get the directory containing the script
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+
+# Execute nosdav.js with the correct path
+node "${SCRIPT_DIR}/nosdav.js"
