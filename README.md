@@ -78,6 +78,25 @@ The server will listen for incoming requests at https://localhost:3118 if port i
 
 In multiuser mode the pubkey will be used to create per user directories beneath the root directory.
 
+## JavaScript Library
+
+```JavaScript
+import http from 'http';
+import { createRequestHandler } from 'nostr-server-library';
+
+const port = 3000;
+const rootDir = './data'; // The root directory where all files will be stored
+const mode = 'singleuser'; // The server mode: 'singleuser' or 'multiuser'
+const owner = 'your_public_key_here'; // Replace with your public key in 'singleuser' mode
+
+const requestHandler = createRequestHandler(rootDir, mode, owner);
+
+const server = http.createServer(requestHandler);
+
+server.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}/`);
+});
+```
 
 ## API Endpoints
 
@@ -99,6 +118,8 @@ Content-Type can vary according to the file being uploaded.
 
 ### GET /:nostrid/:filename
 Download a file by its name for a specific Nostr.
+
+Where nostrid is the pubkey of the user, but only in multiuser mode
 
 
 ## Docker

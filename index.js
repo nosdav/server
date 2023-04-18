@@ -5,6 +5,14 @@ import fs from 'fs'
 import url from 'url'
 import path from 'path'
 
+/**
+ * Creates a request handler function with the given rootDir, mode, and owner.
+ *
+ * @param {string} rootDir - The root directory for all files.
+ * @param {string} mode - The server mode ('singleuser' or 'multiuser').
+ * @param {string} owner - The public key of the owner (used in 'singleuser' mode).
+ * @returns {function} A request handler function that handles incoming HTTP requests based on the specified rootDir, mode, and owner.
+ */
 function createRequestHandler(rootDir, mode, owner) {
   return function handleRequest(req, res) {
     const { method, url: reqUrl, headers } = req
@@ -55,6 +63,7 @@ const getContentType = ext => {
  *
  * @param {string} targetDir - The target directory.
  * @param {string} nostr - The nostr value.
+ * @param {string} mode - The server mode ('singleuser' or 'multiuser').
  * @returns {boolean} True if the target directory is valid, false otherwise.
  */
 const isValidTargetDir = (targetDir, nostr, mode) => {
@@ -127,10 +136,12 @@ function handleOptions(req, res) {
  *
  * @param {http.IncomingMessage} req - The request object.
  * @param {http.ServerResponse} res - The response object.
- * @param {string} pathname - The target file's path.
  * @param {Object} headers - The request headers.
  * @param {string} targetDir - The target directory for saving the file.
  * @param {string} rootDir - The root directory for all files.
+ * @param {string} pathname - The target file's path.
+ * @param {string} mode - The server mode ('singleuser' or 'multiuser').
+ * @param {string} owner - The public key of the owner (used in 'singleuser' mode).
  */
 function handlePut(
   req,
