@@ -71,9 +71,11 @@ Options
     -p or --port: The port on which the server should listen. Default: 3118
     -r or --root: The root directory for file storage. Default: 'data'
     -s or --https: A flag to enable HTTPS. Default: true (HTTPS)
+    -m or --mode: singleuser or multiuser. Default:multiuser
 
 The server will listen for incoming requests at https://localhost:3118 if port is not set
 
+In multiuser mode the pubkey will be used to create per user directories beneath the root directory.
 
 
 ## API Endpoints

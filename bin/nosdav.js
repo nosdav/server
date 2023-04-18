@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
 // Import required modules
-import http from 'http';
-import https from 'https';
-import fs from 'fs';
-import minimist from 'minimist';
-import { handleRequest } from '../index.js';
-
+import http from 'http'
+import https from 'https'
+import fs from 'fs'
+import minimist from 'minimist'
+import { createRequestHandler } from '../index.js'
 
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2), {
@@ -15,16 +14,20 @@ const argv = minimist(process.argv.slice(2), {
     cert: './fullchain.pem',
     port: 3118,
     root: 'data',
-    https: true
+    https: true,
+    mode: 'multiuser'
   },
   alias: {
     k: 'key',
     c: 'cert',
     p: 'port',
     r: 'root',
-    s: 'https'
+    s: 'https',
+    m: 'mode'
   }
 })
+
+console.log(argv)
 
 // SSL options
 const sslOptions = argv.https
@@ -36,8 +39,8 @@ const sslOptions = argv.https
 
 // Create a server (HTTP or HTTPS) with the provided request handler
 const server = argv.https
-  ? https.createServer(sslOptions, handleRequest)
-  : http.createServer(handleRequest)
+  ? https.createServer(sslOptions, createRequestHandler(argv.root, argv.mode))
+  : http.createServer(createRequestHandler(argv.root, argv.mode))
 
 // Start the server and listen on the specified port
 server.listen(argv.port, () => {

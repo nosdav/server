@@ -1,11 +1,35 @@
-import { verifySignature } from 'nostr-tools';
-import http from 'http';
-import https from 'https';
-import fs from 'fs';
-import url from 'url';
-import path from 'path';
+import { verifySignature } from 'nostr-tools'
+import http from 'http'
+import https from 'https'
+import fs from 'fs'
+import url from 'url'
+import path from 'path'
 
-const rootDir = 'data';
+function createRequestHandler(rootDir, mode) {
+  return function handleRequest(req, res) {
+    const { method, url: reqUrl, headers } = req
+    const { pathname } = url.parse(reqUrl)
+    // const targetDir = path.dirname(pathname)
+    const targetDir = path.dirname(pathname).split(path.sep)[1]
+    console.log('targetDir', targetDir)
+
+    // Set CORS headers
+    setCorsHeaders(res)
+
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      handleOptions(req, res)
+    } else if (method === 'PUT') {
+      handlePut(req, res, headers, targetDir, rootDir, pathname, mode)
+    } else if (method === 'GET') {
+      handleGet(req, res, rootDir, pathname)
+    } else {
+      res.statusCode = 405
+      res.end('Method not allowed')
+      console.log('Method not allowed')
+    }
+  }
+}
 
 /**
  * Returns the content type based on the given file extension.
@@ -33,9 +57,17 @@ const getContentType = ext => {
  * @param {string} nostr - The nostr value.
  * @returns {boolean} True if the target directory is valid, false otherwise.
  */
-const isValidTargetDir = (targetDir, nostr) => {
-  const targetSegments = targetDir.split('/').filter(segment => segment !== '')
-  return targetSegments.length === 1 && targetSegments[0] === nostr
+const isValidTargetDir = (targetDir, nostr, mode) => {
+  if (mode === 'singleuser') {
+    // In single user mode, use a fixed subdirectory to store all files
+    return targetDir === 'singleuser'
+  } else {
+    // In multiuser mode, each user has their own subdirectory
+    const targetSegments = targetDir
+      .split('/')
+      .filter(segment => segment !== '')
+    return targetSegments.length === 1 && targetSegments[0] === nostr
+  }
 }
 
 /**
@@ -88,7 +120,6 @@ function handleOptions(req, res) {
 
   res.writeHead(204, corsOptions)
   res.end()
-
 }
 
 /**
@@ -125,17 +156,12 @@ function handlePut(req, res, headers, targetDir, rootDir, pathname) {
   if (targetDir !== pubkey) {
     res.statusCode = 403
     res.end('Forbidden: wrong pubkey')
-    console.error(
-      'Forbidden: wrong pubkey',
-      targetDir,
-      pubkey
-    )
+    console.error('Forbidden: wrong pubkey', targetDir, pubkey)
     return
   }
 
-
   // Check if the target directory is valid
-  if (!isValidTargetDir(targetDir, pubkey)) {
+  if (!isValidTargetDir(targetDir, pubkey, mode)) {
     res.statusCode = 403
     res.end('Forbidden: Target directory structure is invalid')
     console.log(
@@ -173,7 +199,6 @@ function handlePut(req, res, headers, targetDir, rootDir, pathname) {
       console.log('Error writing file')
     })
   })
-
 }
 
 /**
@@ -185,7 +210,10 @@ function handlePut(req, res, headers, targetDir, rootDir, pathname) {
  * @param {string} rootDir - The root directory for all files.
  */
 function handleGet(req, res, rootDir, pathname) {
-  const targetPath = path.join('.', rootDir, pathname)
+  const targetPath = rootDir.startsWith('/')
+    ? path.join(rootDir, pathname)
+    : path.join('.', rootDir, pathname);
+
 
   // Read the file
   fs.readFile(targetPath, (err, data) => {
@@ -203,42 +231,6 @@ function handleGet(req, res, rootDir, pathname) {
   })
 }
 
-/**
- * Handles incoming HTTP requests and routes them to the appropriate handler based on the request method.
- *
- * @param {http.IncomingMessage} req - The request object.
- * @param {http.ServerResponse} res - The response object.
- */
-function handleRequest(req, res) {
-
-  const { method, url: reqUrl, headers } = req
-  const { pathname } = url.parse(reqUrl)
-  // const targetDir = path.dirname(pathname)
-  const targetDir = path.dirname(pathname).split(path.sep)[1]
-  console.log('targetDir', targetDir)
-
-
-  // Set CORS headers
-  setCorsHeaders(res)
-
-
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    handleOptions(req, res)
-  } else if (method === 'PUT') {
-    handlePut(req, res, headers, targetDir, rootDir, pathname)
-  } else if (method === 'GET') {
-    handleGet(req, res, rootDir, pathname)
-  } else {
-    res.statusCode = 405
-    res.end('Method not allowed')
-    console.log('Method not allowed')
-  }
-
-}
-
-
-
 export {
   getContentType,
   setCorsHeaders,
@@ -247,5 +239,5 @@ export {
   handleOptions,
   handlePut,
   handleGet,
-  handleRequest,
-};
+  createRequestHandler
+}
