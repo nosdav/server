@@ -9,7 +9,7 @@
     "start": "node bin/nosdav.js"
   },
   "bin": {
-    "nosdav": "bin/nosdav.js"
+    "nosdav": "bin/startserver.sh"
   },
   "repository": {
     "type": "git",
