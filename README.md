@@ -54,7 +54,7 @@ npm install
 To use this server, you need a valid private key (privkey.pem) and a certificate (fullchain.pem) for HTTPS. Place these files in the project directory or update the file paths in the options object when creating the server.  An example way to generate these is below.
 
 ```bash
-openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout ../privkey.pem -days 365 -out ../fullchain.pem
+openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout ./privkey.pem -days 365 -out ./fullchain.pem
 ```
 
 ## Usage
@@ -71,7 +71,8 @@ Options
     -p or --port: The port on which the server should listen. Default: 3118
     -r or --root: The root directory for file storage. Default: 'data'
     -s or --https: A flag to enable HTTPS. Default: true (HTTPS)
-    -m or --mode: singleuser or multiuser. Default:multiuser
+    -m or --mode: singleuser or multiuser. Default: multiuser
+    -o or --owner: pubkey of owner in singleuser mode
 
 The server will listen for incoming requests at https://localhost:3118 if port is not set
 

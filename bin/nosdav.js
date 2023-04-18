@@ -15,7 +15,8 @@ const argv = minimist(process.argv.slice(2), {
     port: 3118,
     root: 'data',
     https: true,
-    mode: 'multiuser'
+    mode: 'multiuser',
+    owner: null
   },
   alias: {
     k: 'key',
@@ -23,7 +24,8 @@ const argv = minimist(process.argv.slice(2), {
     p: 'port',
     r: 'root',
     s: 'https',
-    m: 'mode'
+    m: 'mode',
+    o: 'owner'
   }
 })
 
@@ -39,8 +41,8 @@ const sslOptions = argv.https
 
 // Create a server (HTTP or HTTPS) with the provided request handler
 const server = argv.https
-  ? https.createServer(sslOptions, createRequestHandler(argv.root, argv.mode))
-  : http.createServer(createRequestHandler(argv.root, argv.mode))
+  ? https.createServer(sslOptions, createRequestHandler(argv.root, argv.mode, argv.owner))
+  : http.createServer(createRequestHandler(argv.root, argv.mode, argv.owner))
 
 // Start the server and listen on the specified port
 server.listen(argv.port, () => {

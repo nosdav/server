@@ -5,7 +5,7 @@ import fs from 'fs'
 import url from 'url'
 import path from 'path'
 
-function createRequestHandler(rootDir, mode) {
+function createRequestHandler(rootDir, mode, owner) {
   return function handleRequest(req, res) {
     const { method, url: reqUrl, headers } = req
     const { pathname } = url.parse(reqUrl)
@@ -20,7 +20,7 @@ function createRequestHandler(rootDir, mode) {
     if (req.method === 'OPTIONS') {
       handleOptions(req, res)
     } else if (method === 'PUT') {
-      handlePut(req, res, headers, targetDir, rootDir, pathname, mode)
+      handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owner)
     } else if (method === 'GET') {
       handleGet(req, res, rootDir, pathname)
     } else {
@@ -132,7 +132,7 @@ function handleOptions(req, res) {
  * @param {string} targetDir - The target directory for saving the file.
  * @param {string} rootDir - The root directory for all files.
  */
-function handlePut(req, res, headers, targetDir, rootDir, pathname) {
+function handlePut(req, res, headers, targetDir, rootDir, pathname, mode) {
   const nostr = headers.authorization.replace('Nostr ', '')
   console.log(nostr)
 
@@ -153,11 +153,20 @@ function handlePut(req, res, headers, targetDir, rootDir, pathname) {
   }
 
   // check pubkey
-  if (targetDir !== pubkey) {
-    res.statusCode = 403
-    res.end('Forbidden: wrong pubkey')
-    console.error('Forbidden: wrong pubkey', targetDir, pubkey)
-    return
+  if (mode === 'singleuser') {
+    if (pubkey !== owner) {
+      res.statusCode = 403
+      res.end('Forbidden: wrong owner')
+      console.error('Forbidden: wrong owner', targetDir, owner)
+      return
+    }
+  } else {
+    if (targetDir !== pubkey) {
+      res.statusCode = 403
+      res.end('Forbidden: wrong pubkey')
+      console.error('Forbidden: wrong pubkey', targetDir, pubkey)
+      return
+    }
   }
 
   // Check if the target directory is valid
@@ -212,8 +221,7 @@ function handlePut(req, res, headers, targetDir, rootDir, pathname) {
 function handleGet(req, res, rootDir, pathname) {
   const targetPath = rootDir.startsWith('/')
     ? path.join(rootDir, pathname)
-    : path.join('.', rootDir, pathname);
-
+    : path.join('.', rootDir, pathname)
 
   // Read the file
   fs.readFile(targetPath, (err, data) => {
