@@ -1,11 +1,11 @@
-const { verifySignature } = require('nostr-tools')
-const http = require('http')
-const https = require('https')
-const fs = require('fs')
-const url = require('url')
-const path = require('path')
+import { verifySignature } from 'nostr-tools';
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
+import url from 'url';
+import path from 'path';
 
-const rootDir = 'data'
+const rootDir = 'data';
 
 /**
  * Returns the content type based on the given file extension.
@@ -53,7 +53,7 @@ function setCorsHeaders(res) {
  * Validates the authorization header and returns the public key if valid.
  *
  * @param {string} authorization - The authorization header value.
- * @returns {(string|undefined)} The public key if the header is valid, undefined otherwise.
+ * @returns {(string|null)} The public key if the header is valid, null otherwise.
  */
 function isValidAuthorizationHeader(authorization) {
   console.log('authorization', authorization)
@@ -101,7 +101,7 @@ function handleOptions(req, res) {
  * @param {string} targetDir - The target directory for saving the file.
  * @param {string} rootDir - The root directory for all files.
  */
-function handlePut(req, res, path, headers, targetDir, rootDir, pathname, path) {
+function handlePut(req, res, headers, targetDir, rootDir, pathname) {
   const nostr = headers.authorization.replace('Nostr ', '')
   console.log(nostr)
 
@@ -182,8 +182,9 @@ function handlePut(req, res, path, headers, targetDir, rootDir, pathname, path) 
  * @param {http.IncomingMessage} req - The request object.
  * @param {http.ServerResponse} res - The response object.
  * @param {string} pathname - The requested file's path.
+ * @param {string} rootDir - The root directory for all files.
  */
-function handleGet(req, res, path, pathname, rootDir) {
+function handleGet(req, res, rootDir, pathname) {
   const targetPath = path.join('.', rootDir, pathname)
 
   // Read the file
@@ -225,9 +226,9 @@ function handleRequest(req, res) {
   if (req.method === 'OPTIONS') {
     handleOptions(req, res)
   } else if (method === 'PUT') {
-    handlePut(req, res, pathname, headers, targetDir, rootDir, pathname, path)
+    handlePut(req, res, headers, targetDir, rootDir, pathname)
   } else if (method === 'GET') {
-    handleGet(req, res, path, pathname, rootDir)
+    handleGet(req, res, rootDir, pathname)
   } else {
     res.statusCode = 405
     res.end('Method not allowed')
@@ -237,13 +238,14 @@ function handleRequest(req, res) {
 }
 
 
-module.exports = {
-  getContentType: getContentType,
-  setCorsHeaders: setCorsHeaders,
-  isValidAuthorizationHeader: isValidAuthorizationHeader,
-  isValidTargetDir: isValidTargetDir,
-  handleOptions: handleOptions,
-  handlePut: handlePut,
-  handleGet: handleGet,
-  handleRequest: handleRequest
-}
+
+export {
+  getContentType,
+  setCorsHeaders,
+  isValidAuthorizationHeader,
+  isValidTargetDir,
+  handleOptions,
+  handlePut,
+  handleGet,
+  handleRequest,
+};

@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 
-// Required modules
-const http = require('http')
-const https = require('https')
-const fs = require('fs')
-const minimist = require('minimist')
+// Import required modules
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
+import minimist from 'minimist';
+import { handleRequest } from '../index.js';
 
-// Custom library
-const {
-  handleRequest
-} = require('../index.js')
 
 // Parse command line arguments
 const argv = minimist(process.argv.slice(2), {
