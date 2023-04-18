@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CERT_DIR="./" # Change this to the directory where you store your certificates
+CERT_DIR="/tmp" # Change this to the directory where you store your certificates
 PRIVKEY_PATH="${CERT_DIR}/privkey.pem"
 FULLCHAIN_PATH="${CERT_DIR}/fullchain.pem"
 
