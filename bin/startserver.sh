@@ -10,7 +10,7 @@ fi
 
 if [ ! -f "$PRIVKEY_PATH" ] || [ ! -f "$FULLCHAIN_PATH" ]; then
   echo "Generating self-signed certificates..."
-  openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -subj "/C=US/ST=California/L=San Francisco/O=My Company/CN=localhost" -keyout ./privkey.pem -days 365 -out ./fullchain.pem
+  openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -subj "/C=US/ST=California/L=San Francisco/O=My Company/CN=localhost" -keyout ${CERT_DIR}/privkey.pem -days 365 -out ${CERT_DIR}/fullchain.pem
 fi
 
 echo "Starting server..."
@@ -21,4 +21,4 @@ SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 
 # Execute nosdav.js with the correct path
-node "${SCRIPT_DIR}/nosdav.js"
+node "${SCRIPT_DIR}/nosdav.js --key ${CERT_DIR}/privkey.pem --cert ${CERT_DIR}/fullchain.pem"
