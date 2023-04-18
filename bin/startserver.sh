@@ -14,4 +14,4 @@ if [ ! -f "$PRIVKEY_PATH" ] || [ ! -f "$FULLCHAIN_PATH" ]; then
 fi
 
 echo "Starting server..."
-./bin/nosdav.js
+./nosdav.js
