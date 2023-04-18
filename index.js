@@ -60,7 +60,7 @@ const getContentType = ext => {
 const isValidTargetDir = (targetDir, nostr, mode) => {
   if (mode === 'singleuser') {
     // In single user mode, use a fixed subdirectory to store all files
-    return targetDir === 'singleuser'
+    return true
   } else {
     // In multiuser mode, each user has their own subdirectory
     const targetSegments = targetDir
@@ -132,7 +132,16 @@ function handleOptions(req, res) {
  * @param {string} targetDir - The target directory for saving the file.
  * @param {string} rootDir - The root directory for all files.
  */
-function handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owner) {
+function handlePut(
+  req,
+  res,
+  headers,
+  targetDir,
+  rootDir,
+  pathname,
+  mode,
+  owner
+) {
   const nostr = headers.authorization.replace('Nostr ', '')
   console.log(nostr)
 
@@ -181,7 +190,9 @@ function handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owner)
     return
   }
 
-  const targetPath = path.join('.', rootDir, pathname)
+  const targetPath = path.isAbsolute(rootDir)
+    ? path.join(rootDir, pathname)
+    : path.join('.', rootDir, pathname)
 
   // Ensure target directory exists
   fs.mkdir(path.dirname(targetPath), { recursive: true }, err => {
