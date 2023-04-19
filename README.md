@@ -87,9 +87,9 @@ import { createRequestHandler } from 'nostr-server-library';
 const port = 3000;
 const rootDir = './data'; // The root directory where all files will be stored
 const mode = 'singleuser'; // The server mode: 'singleuser' or 'multiuser'
-const owner = 'your_public_key_here'; // Replace with your public key in 'singleuser' mode
+const owners = ['public_key1','public_key2']; // array of public keys
 
-const requestHandler = createRequestHandler(rootDir, mode, owner);
+const requestHandler = createRequestHandler(rootDir, mode, owners);
 
 const server = http.createServer(requestHandler);
 
