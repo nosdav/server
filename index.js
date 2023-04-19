@@ -6,14 +6,14 @@ import url from 'url'
 import path from 'path'
 
 /**
- * Creates a request handler function with the given rootDir, mode, and owner.
+ * Creates a request handler function with the given rootDir, mode, and owners.
  *
  * @param {string} rootDir - The root directory for all files.
  * @param {string} mode - The server mode ('singleuser' or 'multiuser').
- * @param {string} owner - The public key of the owner (used in 'singleuser' mode).
- * @returns {function} A request handler function that handles incoming HTTP requests based on the specified rootDir, mode, and owner.
+ * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
+ * @returns {function} A request handler function that handles incoming HTTP requests based on the specified rootDir, mode, and owners.
  */
-function createRequestHandler(rootDir, mode, owner) {
+function createRequestHandler(rootDir, mode, owners) {
   return function handleRequest(req, res) {
     const { method, url: reqUrl, headers } = req
     const { pathname } = url.parse(reqUrl)
@@ -28,7 +28,7 @@ function createRequestHandler(rootDir, mode, owner) {
     if (req.method === 'OPTIONS') {
       handleOptions(req, res)
     } else if (method === 'PUT') {
-      handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owner)
+      handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owners)
     } else if (method === 'GET') {
       handleGet(req, res, rootDir, pathname)
     } else {
@@ -141,7 +141,7 @@ function handleOptions(req, res) {
  * @param {string} rootDir - The root directory for all files.
  * @param {string} pathname - The target file's path.
  * @param {string} mode - The server mode ('singleuser' or 'multiuser').
- * @param {string} owner - The public key of the owner (used in 'singleuser' mode).
+ * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
  */
 function handlePut(
   req,
@@ -151,7 +151,7 @@ function handlePut(
   rootDir,
   pathname,
   mode,
-  owner
+  owners
 ) {
   const nostr = headers.authorization.replace('Nostr ', '')
   console.log(nostr)
@@ -174,10 +174,10 @@ function handlePut(
 
   // check pubkey
   if (mode === 'singleuser') {
-    if (pubkey !== owner) {
+    if (!owners.includes(pubkey)) {
       res.statusCode = 403
       res.end('Forbidden: wrong owner')
-      console.error('Forbidden: wrong owner', targetDir, owner)
+      console.error('Forbidden: wrong owner', owners, pubkey)
       return
     }
   } else {

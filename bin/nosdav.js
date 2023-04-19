@@ -25,24 +25,25 @@ const argv = minimist(process.argv.slice(2), {
     r: 'root',
     s: 'https',
     m: 'mode',
-    o: 'owner'
+    o: 'owners'
   }
 })
 
+argv.owners = argv.owners ? argv.owners.split(',') : []
 console.log(argv)
 
 // SSL options
 const sslOptions = argv.https
   ? {
-    key: fs.readFileSync(argv.key),
-    cert: fs.readFileSync(argv.cert)
-  }
+      key: fs.readFileSync(argv.key),
+      cert: fs.readFileSync(argv.cert)
+    }
   : null
 
 // Create a server (HTTP or HTTPS) with the provided request handler
 const server = argv.https
-  ? https.createServer(sslOptions, createRequestHandler(argv.root, argv.mode, argv.owner))
-  : http.createServer(createRequestHandler(argv.root, argv.mode, argv.owner))
+  ? https.createServer(sslOptions, createRequestHandler(argv.root, argv.mode, argv.owners))
+  : http.createServer(createRequestHandler(argv.root, argv.mode, argv.owners))
 
 // Start the server and listen on the specified port
 server.listen(argv.port, () => {

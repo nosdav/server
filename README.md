@@ -72,7 +72,7 @@ Options
     -r or --root: The root directory for file storage. Default: 'data'
     -s or --https: A flag to enable HTTPS. Default: true (HTTPS)
     -m or --mode: singleuser or multiuser. Default: multiuser
-    -o or --owner: pubkey of owner in singleuser mode
+    -o or --owners: pubkeys (csv) of owners in singleuser mode
 
 The server will listen for incoming requests at https://localhost:3118 if port is not set
 
