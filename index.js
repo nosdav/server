@@ -206,11 +206,23 @@ function handlePut(
     : path.join('.', rootDir, pathname)
 
   // Check if the target path is within the root directory
-  if (!targetPath.startsWith(path.resolve(rootDir))) {
-    res.statusCode = 403
-    res.end('Forbidden: Target path is outside the root directory')
-    console.log('Forbidden: Target path is outside the root directory', targetPath, rootDir)
-    return
+  const resolvedRootDir = path.resolve(rootDir)
+
+  if (mode === 'singleuser') {
+    if (!targetPath.startsWith(resolvedRootDir)) {
+      res.statusCode = 403
+      res.end('Forbidden: Target path is outside the root directory')
+      console.log('Forbidden: Target path is outside the root directory', targetPath, rootDir)
+      return
+    }
+  } else if (mode === 'multiuser') {
+    const resolvedPubKeyDir = path.resolve(rootDir, pubkey)
+    if (!targetPath.startsWith(resolvedPubKeyDir)) {
+      res.statusCode = 403
+      res.end('Forbidden: Target path is outside the user directory')
+      console.log('Forbidden: Target path is outside the user directory', targetPath, resolvedPubKeyDir)
+      return
+    }
   }
 
   // Ensure target directory exists
@@ -228,7 +240,7 @@ function handlePut(
     req.pipe(writeStream)
     writeStream.on('finish', () => {
       res.statusCode = 201
-      res.end('File created', targetPath)
+      res.end('File created')
       console.log('File created', targetPath)
     })
     writeStream.on('error', err => {
