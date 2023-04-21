@@ -45,11 +45,12 @@ function createRequestHandler(rootDir, mode, owners) {
  * @param {string} ext - The file extension.
  * @returns {string} The corresponding content type.
  */
-const getContentType = ext => {
+const getContentType = (ext) => {
   switch (ext) {
     case '.txt':
       return 'text/plain'
     case '.html':
+    case '.htm':
       return 'text/html'
     case '.json':
       return 'application/json'
@@ -57,6 +58,7 @@ const getContentType = ext => {
       return 'application/octet-stream'
   }
 }
+
 
 /**
  * Checks if the target directory is valid based on the given nostr value.
