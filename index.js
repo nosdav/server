@@ -59,7 +59,6 @@ const getContentType = (ext) => {
   }
 }
 
-
 /**
  * Checks if the target directory is valid based on the given nostr value.
  *
@@ -90,6 +89,8 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  // Set the X-Powered-By header
+  res.setHeader('X-Powered-By', 'nosdav/alpha')
 }
 
 /**
