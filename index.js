@@ -13,10 +13,12 @@ import path from 'path'
  * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
  * @returns {function} A request handler function that handles incoming HTTP requests based on the specified rootDir, mode, and owners.
  */
-function createRequestHandler(rootDir, mode, owners) {
-  return function handleRequest(req, res) {
+function createRequestHandler (rootDir, mode, owners) {
+  return function handleRequest (req, res) {
     const { method, url: reqUrl, headers } = req
     const { pathname } = url.parse(reqUrl)
+    const adjustedPathname = pathname.endsWith('/') ? `${pathname}index.html` : pathname
+
     // const targetDir = path.dirname(pathname)
     const targetDir = path.dirname(pathname).split(path.sep)[1]
     console.log('targetDir', targetDir)
@@ -30,7 +32,7 @@ function createRequestHandler(rootDir, mode, owners) {
     } else if (method === 'PUT') {
       handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owners)
     } else if (method === 'GET') {
-      handleGet(req, res, rootDir, pathname)
+      handleGet(req, res, rootDir, adjustedPathname)
     } else {
       res.statusCode = 405
       res.end('Method not allowed')
@@ -85,7 +87,7 @@ const isValidTargetDir = (targetDir, nostr, mode) => {
  *
  * @param {http.ServerResponse} res - The response object.
  */
-function setCorsHeaders(res) {
+function setCorsHeaders (res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -99,7 +101,7 @@ function setCorsHeaders(res) {
  * @param {string} authorization - The authorization header value.
  * @returns {(string|null)} The public key if the header is valid, null otherwise.
  */
-function isValidAuthorizationHeader(authorization) {
+function isValidAuthorizationHeader (authorization) {
   console.log('authorization', authorization)
   const base64String = authorization.replace('Nostr ', '')
 
@@ -122,7 +124,7 @@ function isValidAuthorizationHeader(authorization) {
  * @param {http.IncomingMessage} req - The request object.
  * @param {http.ServerResponse} res - The response object.
  */
-function handleOptions(req, res) {
+function handleOptions (req, res) {
   // Set CORS options
   const corsOptions = {
     origin: 'https://example.com',
@@ -146,7 +148,7 @@ function handleOptions(req, res) {
  * @param {string} mode - The server mode ('singleuser' or 'multiuser').
  * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
  */
-function handlePut(
+function handlePut (
   req,
   res,
   headers,
@@ -263,7 +265,7 @@ function handlePut(
  * @param {string} pathname - The requested file's path.
  * @param {string} rootDir - The root directory for all files.
  */
-function handleGet(req, res, rootDir, pathname) {
+function handleGet (req, res, rootDir, pathname) {
   const targetPath = rootDir.startsWith('/')
     ? path.join(rootDir, pathname)
     : path.join('.', rootDir, pathname)
