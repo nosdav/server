@@ -158,8 +158,8 @@ function handlePut (
   mode,
   owners
 ) {
-  const nostr = headers.authorization.replace('Nostr ', '')
-  console.log(nostr)
+  const nostr = headers?.authorization?.replace('Nostr ', '')
+  console.log('nostr auth header', nostr)
 
   // Check for the "nostr" header and validate its format
   // if (!nostr || !isValidNostr(nostr)) {
