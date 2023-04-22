@@ -217,7 +217,7 @@ function handlePut (
     if (!targetPath.startsWith(resolvedRootDir)) {
       res.statusCode = 403
       res.end('Forbidden: Target path is outside the root directory')
-      console.log('Forbidden: Target path is outside the root directory', targetPath, rootDir)
+      console.log('Forbidden: Target path is outside the root directory', targetPath, rootDir, mode)
       return
     }
   } else if (mode === 'multiuser') {
@@ -225,7 +225,7 @@ function handlePut (
     if (!targetPath.startsWith(resolvedPubKeyDir)) {
       res.statusCode = 403
       res.end('Forbidden: Target path is outside the user directory')
-      console.log('Forbidden: Target path is outside the user directory', targetPath, resolvedPubKeyDir)
+      console.log('Forbidden: Target path is outside the user directory', targetPath, resolvedPubKeyDir, mode)
       return
     }
   }
