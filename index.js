@@ -215,17 +215,15 @@ function handlePut(
   const nostr = headers?.authorization?.replace('Nostr ', '')
   console.log('nostr auth header', nostr)
 
-  // Check for the "nostr" header and validate its format
-  // if (!nostr || !isValidNostr(nostr)) {
-
   const pubkey = isValidAuthorizationHeader(headers.authorization)
+
   if (!nostr || !pubkey) {
     res.statusCode = 401
     res.end(
-      'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
+      'Unauthorized: "nostr" header must a signed nostr event base64 encoded'
     )
     console.log(
-      'Unauthorized: "nostr" header must be a 32 character lowercase hex string'
+      'Unauthorized: "nostr" header must a signed nostr event base64 encoded'
     )
 
     return
