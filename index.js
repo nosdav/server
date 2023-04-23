@@ -56,8 +56,16 @@ const getContentType = (ext) => {
       return 'text/html'
     case '.json':
       return 'application/json'
+    case '.ttl':
+      return 'text/turtle'
+    case '.jsonld':
+      return 'application/ld+json'
+    case '.css':
+      return 'text/css'
+    case '.js':
+      return 'application/javascript'
     default:
-      return 'application/octet-stream'
+      return 'text/plain'
   }
 }
 
