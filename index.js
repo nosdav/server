@@ -108,6 +108,12 @@ const getContentType = (ext) => {
       return 'text/turtle'
     case '.jsonld':
       return 'application/ld+json'
+    case '.md':
+      return 'text/markdown'
+    // this is for the my-mind mindmapping app
+    case '.mymind':
+      return 'application/json'
+
 
     // Default
     default:
