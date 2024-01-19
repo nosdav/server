@@ -107,7 +107,7 @@ Header: Authorization: Nostr base64(NostrEvent)
 ```json
 {
   "kind": 27235,
-  "created_at": "Math.floor(http://Date.now() / 1000)",
+  "created_at": "Math.floor(Date.now() / 1000)",
   "tags": [["u", "path"]],
   "content": ""
 }
