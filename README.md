@@ -37,31 +37,31 @@ NosDAV Server is a simple and secure file server implemented using Node.js, allo
 
 ## Requirements
 
-- Node.js v12 or higher
+- Node.js v12 or higher (HTTPS certificate and private key are optional for HTTPS)
 
 ## Installation
 
 Clone the repository and install:
 
-```bash
+\`\`\`bash
 git clone https://github.com/nosdav/server.git && cd server
 npm install
-```
+\`\`\`
 
 ## Setup
 
-To use this server, you need a valid private key (privkey.pem) and a certificate (fullchain.pem) for HTTPS. Place these files in the project directory or update the file paths in the options object when creating the server.  An example way to generate these is below.
+Note: The following instructions are only necessary if you plan to use HTTPS.
 
-```bash
+\`\`\`bash
 openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout ./privkey.pem -days 365 -out ./fullchain.pem
-```
+\`\`\`
 
 ## Usage
 Start the server:
-
-```bash
+Note: The server will use HTTPS by default unless the --https flag is set to false.
+\`\`\`bash
 node server.js --key private-key.pem --cert fullchain.pem --port your_port
-```
+\`\`\`
 
 Options
 
@@ -79,7 +79,7 @@ In multiuser mode the pubkey will be used to create per user directories beneath
 
 ## JavaScript Library
 
-```JavaScript
+\`\`\`JavaScript
 import http from 'http';
 import { createRequestHandler } from 'nostr-server-library';
 
@@ -95,7 +95,7 @@ const server = http.createServer(requestHandler);
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/`);
 });
-```
+\`\`\`
 
 ## API Endpoints
 
@@ -103,14 +103,14 @@ server.listen(port, () => {
 Upload a file for the given Nostr.
 
 Header: Authorization: Nostr base64(NostrEvent)
-```json
+\`\`\`json
 {
   "kind": 27235,
   "created_at": "Math.floor(Date.now() / 1000)",
   "tags": [["u", "path"]],
   "content": ""
 }
-```
+\`\`\`
 Signed with the pubkey of the user.
 
 Content-Type can vary according to the file being uploaded.
@@ -127,9 +127,9 @@ Where nostrid is the pubkey of the user, but only in multiuser mode
 
 First, you need to build the Docker image for the server. Navigate to the root directory of the project, where the Dockerfile is located, and run the following command:
 
-```
+\`\`\`
 docker build -t nosdav .
-```
+\`\`\`
 
 ### Running the Server with Docker
 
@@ -139,17 +139,17 @@ Now that you have built the Docker image, you can run a container using that ima
 
 Use the -p flag to map the host port to the container port. In this case, we'll map the host port 3118 to the container port 3118:
 
-```bash
+\`\`\`bash
 docker run -d -p 3118:3118 nosdav
-```
+\`\`\`
 
 ### Mounting a Volume for Data Storage
 
 To persist the data directory across container restarts or removals, you can use the --mount flag to create a volume and mount it to the container:
 
-```bash
+\`\`\`bash
 docker run -d -p 3118:3118 --mount type=bind,source=my-data,destination=/usr/src/app/data nosdav
-```
+\`\`\`
 
 Replace my-data with your preferred volume name.
 
