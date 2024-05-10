@@ -30,7 +30,7 @@ NosDAV Server is a simple and secure file server implemented using Node.js, allo
 
 &nbsp;&nbsp;✓&nbsp; HTTP(S) server  
 &nbsp;&nbsp;✓&nbsp; PUT and GET requests for uploading and downloading files  
-&nbsp;&nbsp;✓&nbsp; Nostr event validation using nostr-tools  
+&nbsp;&nbsp;✓&nbsp; Nostr event validation using [nostr-tools](https://github.com/nbd-wtf/nostr-tools) and [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)  
 &nbsp;&nbsp;✓&nbsp; CORS handling  
 &nbsp;&nbsp;✓&nbsp; Basic file validation  
 &nbsp;&nbsp;✓&nbsp; Proper response headers
