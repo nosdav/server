@@ -50,7 +50,7 @@ npm install
 
 ## Setup
 
-To use this server, you need a valid private key (privkey.pem) and a certificate (fullchain.pem) for HTTPS. Place these files in the project directory or update the file paths in the options object when creating the server.  An example way to generate these is below.
+To use this server using, you need a valid private key (privkey.pem) and a certificate (fullchain.pem) for HTTPS. Place these files in the project directory or update the file paths in the options object when creating the server.  An example way to generate these is below.
 
 ```bash
 openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout ./privkey.pem -days 365 -out ./fullchain.pem
