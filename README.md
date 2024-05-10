@@ -28,7 +28,7 @@ NosDAV Server is a simple and secure file server implemented using Node.js, allo
 
 ## Features
 
-&nbsp;&nbsp;✓&nbsp; HTTPS server  
+&nbsp;&nbsp;✓&nbsp; HTTP(S) server  
 &nbsp;&nbsp;✓&nbsp; PUT and GET requests for uploading and downloading files  
 &nbsp;&nbsp;✓&nbsp; Nostr event validation using nostr-tools  
 &nbsp;&nbsp;✓&nbsp; CORS handling  
