@@ -38,7 +38,6 @@ NosDAV Server is a simple and secure file server implemented using Node.js, allo
 ## Requirements
 
 - Node.js v12 or higher
-- HTTPS certificate and private key
 
 ## Installation
 
