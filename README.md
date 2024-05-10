@@ -65,13 +65,13 @@ node server.js --key private-key.pem --cert fullchain.pem --port your_port
 
 Options
 
-    -k or --key: The path to the private key file. Default: './privkey.pem'
-    -c or --cert: The path to the certificate file. Default: './fullchain.pem'
     -p or --port: The port on which the server should listen. Default: 3118
     -r or --root: The root directory for file storage. Default: 'data'
     -s or --https: A flag to enable HTTPS. Default: true (HTTPS)
     -m or --mode: singleuser or multiuser. Default: multiuser
-    -o or --owners: pubkeys (csv) of owners in singleuser mode
+    -k or --key: The path to the private key file. Default: './privkey.pem' (optional)
+    -c or --cert: The path to the certificate file. Default: './fullchain.pem' (optional)
+    -o or --owners: pubkeys (csv) of owners in singleuser mode (optional)
 
 The server will listen for incoming requests at https://localhost:3118 if port is not set
 
