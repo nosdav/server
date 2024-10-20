@@ -1,6 +1,6 @@
 {
   "name": "nosdav-server",
-  "version": "0.0.50",
+  "version": "0.0.51",
   "description": "nosdav server",
   "main": "index.js",
   "type": "module",
@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/nosdav/server#readme",
   "dependencies": {
+    "chalk": "^5.3.0",
     "clipboardy": "^4.0.0",
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
