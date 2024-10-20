@@ -1,6 +1,6 @@
 {
   "name": "nosdav-server",
-  "version": "0.0.48",
+  "version": "0.0.49",
   "description": "nosdav server",
   "main": "index.js",
   "type": "module",
