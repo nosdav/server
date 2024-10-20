@@ -271,22 +271,22 @@ function handlePut (
   // Check if the target path is within the root directory
   const resolvedRootDir = path.resolve(rootDir)
 
-  // if (mode === 'singleuser') {
-  //   if (!targetPath.startsWith(resolvedRootDir)) {
-  //     res.statusCode = 403
-  //     res.end('Forbidden: Target path is outside the root directory')
-  //     console.log('Forbidden: Target path is outside the root directory', targetPath, rootDir, mode)
-  //     return
-  //   }
-  // } else if (mode === 'multiuser') {
-  //   const resolvedPubKeyDir = path.resolve(rootDir, pubkey)
-  //   if (!targetPath.startsWith(resolvedPubKeyDir)) {
-  //     res.statusCode = 403
-  //     res.end('Forbidden: Target path is outside the user directory')
-  //     console.log('Forbidden: Target path is outside the user directory', targetPath, resolvedPubKeyDir, mode)
-  //     return
-  //   }
-  // }
+  if (mode === 'singleuser') {
+    if (!path.resolve(targetPath).startsWith(resolvedRootDir)) {
+      res.statusCode = 403
+      res.end('Forbidden: Target path is outside the root directory')
+      console.log('Forbidden: Target path is outside the root directory', targetPath, rootDir, mode)
+      return
+    }
+  } else if (mode === 'multiuser') {
+    const resolvedPubKeyDir = path.resolve(rootDir, pubkey)
+    if (!path.resolve(targetPath).startsWith(resolvedPubKeyDir)) {
+      res.statusCode = 403
+      res.end('Forbidden: Target path is outside the user directory')
+      console.log('Forbidden: Target path is outside the user directory', targetPath, resolvedPubKeyDir, mode)
+      return
+    }
+  }
 
   // Ensure target directory exists
   fs.mkdir(path.dirname(targetPath), { recursive: true }, err => {
