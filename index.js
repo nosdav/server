@@ -6,14 +6,106 @@ import url from 'url'
 import path from 'path'
 
 /**
+ * Manages invites for pubkeys to access the server.
+ * Invites are stored in a JSON file in the root directory.
+ */
+const INVITES_FILE = 'invites.json'
+
+/**
+ * Initializes the invites file if it doesn't exist.
+ * 
+ * @returns {void}
+ */
+function initInvitesFile () {
+  if (!fs.existsSync(INVITES_FILE)) {
+    fs.writeFileSync(INVITES_FILE, JSON.stringify({ invites: [] }, null, 2))
+    console.log(`Created ${INVITES_FILE}`)
+  }
+}
+
+/**
+ * Gets the list of invited pubkeys.
+ * 
+ * @returns {Array<string>} Array of invited pubkeys
+ */
+function getInvites () {
+  try {
+    initInvitesFile()
+    const data = fs.readFileSync(INVITES_FILE, 'utf8')
+    return JSON.parse(data).invites || []
+  } catch (error) {
+    console.error('Error reading invites file:', error)
+    return []
+  }
+}
+
+/**
+ * Checks if a pubkey has been invited.
+ * 
+ * @param {string} pubkey - The pubkey to check
+ * @returns {boolean} True if the pubkey is invited, false otherwise
+ */
+function isInvited (pubkey) {
+  const invites = getInvites()
+  return invites.includes(pubkey)
+}
+
+/**
+ * Adds a pubkey to the invites list.
+ * 
+ * @param {string} pubkey - The pubkey to invite
+ * @returns {boolean} True if the pubkey was added, false if it was already invited
+ */
+function addInvite (pubkey) {
+  try {
+    const invites = getInvites()
+    if (invites.includes(pubkey)) {
+      return false
+    }
+
+    invites.push(pubkey)
+    fs.writeFileSync(INVITES_FILE, JSON.stringify({ invites }, null, 2))
+    return true
+  } catch (error) {
+    console.error('Error adding invite:', error)
+    return false
+  }
+}
+
+/**
+ * Removes a pubkey from the invites list.
+ * 
+ * @param {string} pubkey - The pubkey to remove
+ * @returns {boolean} True if the pubkey was removed, false if it wasn't in the list
+ */
+function removeInvite (pubkey) {
+  try {
+    const invites = getInvites()
+    const index = invites.indexOf(pubkey)
+
+    if (index === -1) {
+      return false
+    }
+
+    invites.splice(index, 1)
+    fs.writeFileSync(INVITES_FILE, JSON.stringify({ invites }, null, 2))
+    return true
+  } catch (error) {
+    console.error('Error removing invite:', error)
+    return false
+  }
+}
+
+/**
  * Creates a request handler function with the given rootDir, mode, and owners.
  *
  * @param {string} rootDir - The root directory for all files.
  * @param {string} mode - The server mode ('singleuser' or 'multiuser').
  * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
+ * @param {boolean} invitesEnabled - Whether the invite system is enabled.
  * @returns {function} A request handler function that handles incoming HTTP requests based on the specified rootDir, mode, and owners.
  */
-function createRequestHandler (rootDir, mode, owners) {
+function createRequestHandler (rootDir, mode, owners, invitesEnabled = true) {
   return function handleRequest (req, res) {
     const { method, url: reqUrl, headers } = req
     const { pathname } = url.parse(reqUrl)
@@ -30,9 +122,17 @@ function createRequestHandler (rootDir, mode, owners) {
     if (req.method === 'OPTIONS') {
       handleOptions(req, res)
     } else if (method === 'PUT') {
-      handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owners)
+      handlePut(req, res, headers, targetDir, rootDir, pathname, mode, owners, invitesEnabled)
     } else if (method === 'GET') {
       handleGet(req, res, rootDir, adjustedPathname)
+    } else if (method === 'POST' && pathname === '/api/invites') {
+      // Only handle invite management if invites are enabled
+      if (invitesEnabled) {
+        handleInviteManagement(req, res, headers, owners)
+      } else {
+        res.statusCode = 404
+        res.end('Not Found: Invite system is disabled')
+      }
     } else {
       res.statusCode = 405
       res.end('Method not allowed')
@@ -207,6 +307,7 @@ function handleOptions (req, res) {
  * @param {string} pathname - The target file's path.
  * @param {string} mode - The server mode ('singleuser' or 'multiuser').
  * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
+ * @param {boolean} invitesEnabled - Whether the invite system is enabled.
  */
 function handlePut (
   req,
@@ -216,7 +317,8 @@ function handlePut (
   rootDir,
   pathname,
   mode,
-  owners
+  owners,
+  invitesEnabled = true
 ) {
   const nostr = headers?.authorization?.replace('Nostr ', '')
   console.log('nostr auth header', nostr)
@@ -248,6 +350,18 @@ function handlePut (
       res.statusCode = 403
       res.end('Forbidden: wrong pubkey')
       console.error('Forbidden: wrong pubkey', targetDir, pubkey)
+      return
+    }
+
+    // Check if the pubkey is invited for multiuser mode
+    // Only check when creating a top-level directory and invites are enabled
+    const pubkeyDirPath = path.join(rootDir, pubkey)
+    const isCreatingPubkeyDir = !fs.existsSync(pubkeyDirPath)
+
+    if (invitesEnabled && isCreatingPubkeyDir && !isInvited(pubkey) && !owners.includes(pubkey)) {
+      res.statusCode = 403
+      res.end('Forbidden: You need an invite to create a directory')
+      console.error('Forbidden: Uninvited pubkey', pubkey)
       return
     }
   }
@@ -340,6 +454,84 @@ function handleGet (req, res, rootDir, pathname) {
       res.setHeader('Content-Type', contentType)
       res.statusCode = 200
       res.end(data)
+    }
+  })
+}
+
+/**
+ * Handles invite management API requests.
+ * 
+ * @param {http.IncomingMessage} req - The request object.
+ * @param {http.ServerResponse} res - The response object.
+ * @param {Object} headers - The request headers.
+ * @param {Array<string>} owners - The public keys of the owners.
+ */
+function handleInviteManagement (req, res, headers, owners) {
+  const pubkey = isValidAuthorizationHeader(headers.authorization)
+
+  if (!pubkey) {
+    res.statusCode = 401
+    res.end('Unauthorized: Valid authorization header required')
+    console.log('Unauthorized: Valid authorization header required')
+    return
+  }
+
+  // Only owners can manage invites
+  if (!owners.includes(pubkey)) {
+    res.statusCode = 403
+    res.end('Forbidden: Only owners can manage invites')
+    console.error('Forbidden: Non-owner tried to manage invites', pubkey)
+    return
+  }
+
+  // Parse the request body
+  let body = ''
+  req.on('data', chunk => {
+    body += chunk.toString()
+  })
+
+  req.on('end', () => {
+    try {
+      const data = JSON.parse(body)
+      const { action, targetPubkey } = data
+
+      if (!targetPubkey) {
+        res.statusCode = 400
+        res.end('Bad Request: targetPubkey is required')
+        return
+      }
+
+      let result = false
+      let message = ''
+
+      switch (action) {
+        case 'add':
+          result = addInvite(targetPubkey)
+          message = result ? 'Invite added' : 'Pubkey already invited'
+          break
+        case 'remove':
+          result = removeInvite(targetPubkey)
+          message = result ? 'Invite removed' : 'Pubkey not found in invites'
+          break
+        case 'list':
+          const invites = getInvites()
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ invites }))
+          return
+        default:
+          res.statusCode = 400
+          res.end('Bad Request: Invalid action')
+          return
+      }
+
+      res.statusCode = 200
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ success: result, message }))
+    } catch (error) {
+      console.error('Error processing invite management request:', error)
+      res.statusCode = 400
+      res.end('Bad Request: Invalid JSON')
     }
   })
 }

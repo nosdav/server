@@ -41,7 +41,8 @@ function askQuestion (index, config, callback) {
     `Enter the root directory [${chalk.green(config.root)}]: `,
     `Enable HTTPS (true/false) [${chalk.yellow(config.https)}]: `,
     `Enter the mode (singleuser/multiuser) [${chalk.magenta(config.mode)}]: `,
-    `Enter the owners (comma-separated) [${chalk.cyan(config.owners.join(','))}]: `
+    `Enter the owners (comma-separated) [${chalk.cyan(config.owners.join(','))}]: `,
+    `Enable invite system (true/false) [${chalk.cyan(config.invites)}]: `
   ];
 
   if (index < questions.length) {
@@ -59,13 +60,16 @@ function askQuestion (index, config, callback) {
           config.root = answer || config.root;
           break;
         case 2:
-          config.https = answer.toLowerCase() === 'false' || config.https;
+          config.https = answer.toLowerCase() === 'true' || (answer === '' && config.https);
           break;
         case 3:
           config.mode = answer || config.mode;
           break;
         case 4:
           config.owners = answer ? answer.split(',') : config.owners;
+          break;
+        case 5:
+          config.invites = answer.toLowerCase() === 'true' || (answer === '' && config.invites);
           break;
       }
       rl.close();
@@ -87,9 +91,40 @@ function startServer (config) {
     }
     : null;
 
+  // Initialize the invites file if invites are enabled
+  if (config.invites) {
+    const invitesFilePath = path.join(__dirname, '..', 'invites.json');
+    if (!fs.existsSync(invitesFilePath)) {
+      fs.writeFileSync(invitesFilePath, JSON.stringify({ invites: [] }, null, 2));
+      console.log('Created invites.json file');
+    }
+
+    // Add owners to invites by default
+    if (config.owners && config.owners.length > 0) {
+      try {
+        const invitesData = JSON.parse(fs.readFileSync(invitesFilePath, 'utf-8'));
+        let invitesChanged = false;
+
+        for (const owner of config.owners) {
+          if (owner && !invitesData.invites.includes(owner)) {
+            invitesData.invites.push(owner);
+            invitesChanged = true;
+          }
+        }
+
+        if (invitesChanged) {
+          fs.writeFileSync(invitesFilePath, JSON.stringify(invitesData, null, 2));
+          console.log('Added owners to invites list');
+        }
+      } catch (error) {
+        console.error('Error updating invites file with owners:', error);
+      }
+    }
+  }
+
   const server = config.https
-    ? https.createServer(sslOptions, createRequestHandler(config.root, config.mode, config.owners))
-    : http.createServer(createRequestHandler(config.root, config.mode, config.owners));
+    ? https.createServer(sslOptions, createRequestHandler(config.root, config.mode, config.owners, config.invites))
+    : http.createServer(createRequestHandler(config.root, config.mode, config.owners, config.invites));
 
   server.listen(config.port, '0.0.0.0', () => {
     console.log();
@@ -120,6 +155,25 @@ function displayInfo (config, localAddress, networkAddress) {
   if (config.https) {
     lines.push(`- SSL Key:      ${chalk.red(config.key)}`);
     lines.push(`- SSL Cert:     ${chalk.red(config.cert)}`);
+  }
+
+  // Add invite system information
+  lines.push('');
+  lines.push(chalk.bold('Invite System:'));
+  lines.push('');
+  lines.push(`- Status:       ${config.invites ? chalk.green('Enabled') : chalk.red('Disabled')}`);
+
+  if (config.invites) {
+    lines.push(`- Manage:       ${chalk.yellow('POST /api/invites')}`);
+    lines.push(`- Actions:      ${chalk.cyan('add, remove, list')}`);
+
+    if (config.mode === 'multiuser') {
+      lines.push(`- Note:         ${chalk.magenta('Only invited pubkeys can create directories')}`);
+    } else {
+      lines.push(`- Note:         ${chalk.magenta('Invite system only affects multiuser mode')}`);
+    }
+  } else {
+    lines.push(`- Note:         ${chalk.magenta('Anyone can create directories in multiuser mode')}`);
   }
 
   lines.push('');
@@ -175,7 +229,8 @@ const argv = minimist(process.argv.slice(2), {
     m: 'mode',
     o: 'owners',
     k: 'key',
-    c: 'cert'
+    c: 'cert',
+    i: 'invites'
   }
 });
 
@@ -188,6 +243,7 @@ function mergeConfigWithArgs (config, args) {
   if (args.owners) config.owners = args.owners.split(',');
   if (args.key) config.key = args.key;
   if (args.cert) config.cert = args.cert;
+  if (args.invites !== undefined) config.invites = args.invites === true;
 }
 
 // Main execution
@@ -198,7 +254,8 @@ let config = loadConfig() || {
   root: 'data',
   https: true, // Ensure HTTPS defaults to true
   mode: 'multiuser',
-  owners: []
+  owners: [],
+  invites: true // Enable invites by default
 };
 
 // Check if there are no command-line arguments

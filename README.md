@@ -1,5 +1,3 @@
-
-
 <div align="center">  
   <h1>nosdav-server</h1>
 </div>
@@ -25,7 +23,6 @@
 
 NosDAV Server is a simple and secure file server implemented using Node.js, allowing clients to store and retrieve files over HTTPS. The server validates Nostr events in the authorization header and ensures that only authorized users can store and access files.
 
-
 ## Features
 
 &nbsp;&nbsp;✓&nbsp; HTTP(S) server  
@@ -33,7 +30,8 @@ NosDAV Server is a simple and secure file server implemented using Node.js, allo
 &nbsp;&nbsp;✓&nbsp; Nostr event validation using [nostr-tools](https://github.com/nbd-wtf/nostr-tools) and [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)  
 &nbsp;&nbsp;✓&nbsp; CORS handling  
 &nbsp;&nbsp;✓&nbsp; Basic file validation  
-&nbsp;&nbsp;✓&nbsp; Proper response headers
+&nbsp;&nbsp;✓&nbsp; Proper response headers  
+&nbsp;&nbsp;✓&nbsp; Invite system for controlling who can create directories
 
 ## Requirements
 
@@ -50,13 +48,14 @@ npm install
 
 ## Setup
 
-To use this server using, you need a valid private key (privkey.pem) and a certificate (fullchain.pem) for HTTPS. Place these files in the project directory or update the file paths in the options object when creating the server.  An example way to generate these is below.
+To use this server using, you need a valid private key (privkey.pem) and a certificate (fullchain.pem) for HTTPS. Place these files in the project directory or update the file paths in the options object when creating the server. An example way to generate these is below.
 
 ```bash
 openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout ./privkey.pem -days 365 -out ./fullchain.pem
 ```
 
 ## Usage
+
 Start the server:
 
 ```bash
@@ -72,10 +71,55 @@ Options
     -k or --key: The path to the private key file. Default: './privkey.pem' (optional)
     -c or --cert: The path to the certificate file. Default: './fullchain.pem' (optional)
     -o or --owners: pubkeys (csv) of owners in singleuser mode (optional)
+    -i or --invites: Enable or disable the invite system. Default: true (enabled)
 
 The server will listen for incoming requests at https://localhost:3118 if port is not set
 
-In multiuser mode the pubkey will be used to create per user directories beneath the root directory.
+In multiuser mode the pubkey will be used to create per user directories.
+
+## Invite System
+
+The server includes an invite system that controls which pubkeys can create top-level directories in multiuser mode. This helps prevent spam and unauthorized usage of your server.
+
+### How It Works
+
+- Only invited pubkeys can create top-level directories in multiuser mode
+- Server owners are automatically added to the invite list
+- Invites are stored in an `invites.json` file in the server root directory
+- The invite system can be enabled or disabled using the `-i` or `--invites` flag
+
+### Managing Invites
+
+You can manage invites through the `/api/invites` API endpoint:
+
+#### Adding an Invite
+
+```bash
+curl -X POST https://your-server.com/api/invites \
+  -H "Authorization: Nostr <base64-encoded-nostr-event>" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "add", "targetPubkey": "pubkey-to-invite"}'
+```
+
+#### Removing an Invite
+
+```bash
+curl -X POST https://your-server.com/api/invites \
+  -H "Authorization: Nostr <base64-encoded-nostr-event>" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "remove", "targetPubkey": "pubkey-to-remove"}'
+```
+
+#### Listing All Invites
+
+```bash
+curl -X POST https://your-server.com/api/invites \
+  -H "Authorization: Nostr <base64-encoded-nostr-event>" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "list", "targetPubkey": "any-value"}'
+```
+
+Note: Only server owners (as defined in the config.json file) can manage invites.
 
 ## JavaScript Library
 
@@ -100,9 +144,11 @@ server.listen(port, () => {
 ## API Endpoints
 
 ### PUT /:nostrid/:filename
+
 Upload a file for the given Nostr.
 
 Header: Authorization: Nostr base64(NostrEvent)
+
 ```json
 {
   "kind": 27235,
@@ -111,15 +157,16 @@ Header: Authorization: Nostr base64(NostrEvent)
   "content": ""
 }
 ```
+
 Signed with the pubkey of the user.
 
 Content-Type can vary according to the file being uploaded.
 
 ### GET /:nostrid/:filename
+
 Download a file by its name for a specific Nostr.
 
 Where nostrid is the pubkey of the user, but only in multiuser mode
-
 
 ## Docker
 

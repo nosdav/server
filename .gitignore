@@ -107,4 +107,5 @@ data/
 config.json
 fullchain.pem
 privkey.pem
+invites.json
 .tern-port
