@@ -183,9 +183,15 @@ function displayInfo (config, localAddress, networkAddress) {
   lines.push(`- Network:  ${chalk.blue(networkAddress)}`);
   lines.push('');
 
-  // Copy local address to clipboard
-  clipboardy.writeSync(localAddress);
-  lines.push(chalk.green('Copied local address to clipboard!'));
+  // Try to copy local address to clipboard, but don't fail if it doesn't work
+  try {
+    clipboardy.writeSync(localAddress);
+    lines.push(chalk.green('Copied local address to clipboard!'));
+  } catch (error) {
+    // Skip clipboard functionality on headless environments
+    console.debug('Clipboard functionality not available (likely running in a headless environment)');
+  }
+
   lines.push('');
 
   // Calculate max content width based on stripped lengths
