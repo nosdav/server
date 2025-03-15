@@ -190,6 +190,18 @@ const getContentType = (ext) => {
       return 'audio/mp4'
     case '.flac':
       return 'audio/flac'
+    case '.m3u':
+      return 'audio/x-mpegurl'
+    case '.m3u8':
+      return 'application/vnd.apple.mpegurl'
+    case '.pls':
+      return 'audio/x-scpls'
+    case '.xspf':
+      return 'application/xspf+xml'
+    case '.asx':
+      return 'video/x-ms-asf'
+    case '.wpl':
+      return 'application/vnd.ms-wpl'
 
     // Video
     case '.mp4':
