@@ -103,9 +103,10 @@ function removeInvite (pubkey) {
  * @param {string} mode - The server mode ('singleuser' or 'multiuser').
  * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
  * @param {boolean} invitesEnabled - Whether the invite system is enabled.
+ * @param {boolean} inboxEnabled - Whether the inbox system is enabled.
  * @returns {function} A request handler function that handles incoming HTTP requests based on the specified rootDir, mode, and owners.
  */
-function createRequestHandler (rootDir, mode, owners, invitesEnabled = true) {
+function createRequestHandler (rootDir, mode, owners, invitesEnabled = true, inboxEnabled = true) {
   return function handleRequest (req, res) {
     const { method, url: reqUrl, headers } = req
     const { pathname } = url.parse(reqUrl)
@@ -132,6 +133,14 @@ function createRequestHandler (rootDir, mode, owners, invitesEnabled = true) {
       } else {
         res.statusCode = 404
         res.end('Not Found: Invite system is disabled')
+      }
+    } else if (method === 'POST' && pathname.includes('/inbox/')) {
+      // Only handle inbox requests if inbox is enabled
+      if (inboxEnabled) {
+        handleInbox(req, res, headers, targetDir, rootDir, mode, owners, invitesEnabled)
+      } else {
+        res.statusCode = 404
+        res.end('Not Found: Inbox system is disabled')
       }
     } else {
       res.statusCode = 405
@@ -286,7 +295,7 @@ function isValidAuthorizationHeader (authorization) {
 
   const isVerified = verifySignature(event)
   if (isVerified) {
-    return event.pubkey
+    return { pubkey: event.pubkey, eventId: event.id }
   }
 }
 
@@ -335,9 +344,9 @@ function handlePut (
   const nostr = headers?.authorization?.replace('Nostr ', '')
   console.log('nostr auth header', nostr)
 
-  const pubkey = isValidAuthorizationHeader(headers.authorization)
+  const authResult = isValidAuthorizationHeader(headers.authorization)
 
-  if (!nostr || !pubkey) {
+  if (!nostr || !authResult) {
     res.statusCode = 401
     res.end(
       'Unauthorized: "nostr" header must a signed nostr event base64 encoded'
@@ -348,6 +357,8 @@ function handlePut (
 
     return
   }
+
+  const pubkey = authResult.pubkey
 
   // check pubkey
   if (mode === 'singleuser') {
@@ -479,14 +490,16 @@ function handleGet (req, res, rootDir, pathname) {
  * @param {Array<string>} owners - The public keys of the owners.
  */
 function handleInviteManagement (req, res, headers, owners) {
-  const pubkey = isValidAuthorizationHeader(headers.authorization)
+  const authResult = isValidAuthorizationHeader(headers.authorization)
 
-  if (!pubkey) {
+  if (!authResult) {
     res.statusCode = 401
     res.end('Unauthorized: Valid authorization header required')
     console.log('Unauthorized: Valid authorization header required')
     return
   }
+
+  const pubkey = authResult.pubkey
 
   // Only owners can manage invites
   if (!owners.includes(pubkey)) {
@@ -548,6 +561,109 @@ function handleInviteManagement (req, res, headers, owners) {
   })
 }
 
+/**
+ * Handles POST requests to save JSON files to the inbox directory.
+ *
+ * @param {http.IncomingMessage} req - The request object.
+ * @param {http.ServerResponse} res - The response object.
+ * @param {Object} headers - The request headers.
+ * @param {string} targetDir - The target directory (should be a pubkey).
+ * @param {string} rootDir - The root directory for all files.
+ * @param {string} mode - The server mode ('singleuser' or 'multiuser').
+ * @param {Array<string>} owners - The public keys of the owners.
+ * @param {boolean} invitesEnabled - Whether the invite system is enabled.
+ */
+function handleInbox (req, res, headers, targetDir, rootDir, mode, owners, invitesEnabled = true) {
+  const authResult = isValidAuthorizationHeader(headers.authorization)
+
+  if (!authResult) {
+    res.statusCode = 401
+    res.end('Unauthorized: Valid authorization header required')
+    console.log('Unauthorized: Valid authorization header required')
+    return
+  }
+
+  const { pubkey, eventId } = authResult
+
+  // In multiuser mode, check if the target directory matches the authenticated pubkey
+  if (mode === 'multiuser' && targetDir !== pubkey) {
+    res.statusCode = 403
+    res.end('Forbidden: Can only post to your own inbox')
+    console.error('Forbidden: Wrong pubkey for inbox', targetDir, pubkey)
+    return
+  }
+
+  // In singleuser mode, check if the pubkey is an owner
+  if (mode === 'singleuser' && !owners.includes(pubkey)) {
+    res.statusCode = 403
+    res.end('Forbidden: Only owners can post to inbox')
+    console.error('Forbidden: Non-owner tried to post to inbox', pubkey)
+    return
+  }
+
+  // Check invites for multiuser mode
+  if (mode === 'multiuser' && invitesEnabled && !isInvited(pubkey) && !owners.includes(pubkey)) {
+    res.statusCode = 403
+    res.end('Forbidden: You need an invite to post to inbox')
+    console.error('Forbidden: Uninvited pubkey tried to post to inbox', pubkey)
+    return
+  }
+
+  // Create the inbox directory path
+  const inboxDir = mode === 'singleuser'
+    ? path.join(rootDir, 'inbox')
+    : path.join(rootDir, targetDir, 'inbox')
+
+  const targetPath = path.join(inboxDir, `${eventId}.json`)
+
+  // Ensure inbox directory exists
+  fs.mkdir(inboxDir, { recursive: true }, err => {
+    if (err) {
+      console.error(err)
+      res.statusCode = 500
+      res.end('Error creating inbox directory')
+      console.log('Error creating inbox directory')
+      return
+    }
+
+    // Parse and validate JSON body
+    let body = ''
+    req.on('data', chunk => {
+      body += chunk.toString()
+    })
+
+    req.on('end', () => {
+      try {
+        // Validate that it's valid JSON
+        JSON.parse(body)
+
+        // Save the JSON file
+        fs.writeFile(targetPath, body, (err) => {
+          if (err) {
+            console.error(err)
+            res.statusCode = 500
+            res.end('Error writing file')
+            console.log('Error writing file')
+          } else {
+            res.statusCode = 201
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({
+              success: true,
+              message: 'File created in inbox',
+              filename: `${eventId}.json`
+            }))
+            console.log('Inbox file created', targetPath)
+          }
+        })
+      } catch (error) {
+        res.statusCode = 400
+        res.end('Bad Request: Invalid JSON')
+        console.error('Invalid JSON in inbox request:', error)
+      }
+    })
+  })
+}
+
 export {
   getContentType,
   setCorsHeaders,
@@ -556,5 +672,6 @@ export {
   handleOptions,
   handlePut,
   handleGet,
+  handleInbox,
   createRequestHandler
 }

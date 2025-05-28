@@ -42,7 +42,8 @@ function askQuestion (index, config, callback) {
     `Enable HTTPS (true/false) [${chalk.yellow(config.https)}]: `,
     `Enter the mode (singleuser/multiuser) [${chalk.magenta(config.mode)}]: `,
     `Enter the owners (comma-separated) [${chalk.cyan(config.owners.join(','))}]: `,
-    `Enable invite system (true/false) [${chalk.cyan(config.invites)}]: `
+    `Enable invite system (true/false) [${chalk.cyan(config.invites)}]: `,
+    `Enable inbox system (true/false) [${chalk.cyan(config.inbox)}]: `
   ];
 
   if (index < questions.length) {
@@ -70,6 +71,9 @@ function askQuestion (index, config, callback) {
           break;
         case 5:
           config.invites = answer.toLowerCase() === 'true' || (answer === '' && config.invites);
+          break;
+        case 6:
+          config.inbox = answer.toLowerCase() === 'true' || (answer === '' && config.inbox);
           break;
       }
       rl.close();
@@ -123,8 +127,8 @@ function startServer (config) {
   }
 
   const server = config.https
-    ? https.createServer(sslOptions, createRequestHandler(config.root, config.mode, config.owners, config.invites))
-    : http.createServer(createRequestHandler(config.root, config.mode, config.owners, config.invites));
+    ? https.createServer(sslOptions, createRequestHandler(config.root, config.mode, config.owners, config.invites, config.inbox))
+    : http.createServer(createRequestHandler(config.root, config.mode, config.owners, config.invites, config.inbox));
 
   server.listen(config.port, '0.0.0.0', () => {
     console.log();
@@ -174,6 +178,25 @@ function displayInfo (config, localAddress, networkAddress) {
     }
   } else {
     lines.push(`- Note:         ${chalk.magenta('Anyone can create directories in multiuser mode')}`);
+  }
+
+  // Add inbox system information
+  lines.push('');
+  lines.push(chalk.bold('Inbox System:'));
+  lines.push('');
+  lines.push(`- Status:       ${config.inbox ? chalk.green('Enabled') : chalk.red('Disabled')}`);
+
+  if (config.inbox) {
+    if (config.mode === 'multiuser') {
+      lines.push(`- Endpoint:     ${chalk.yellow('POST /<pubkey>/inbox/')}`);
+      lines.push(`- Note:         ${chalk.magenta('JSON files saved as <eventid>.json')}`);
+    } else {
+      lines.push(`- Endpoint:     ${chalk.yellow('POST /inbox/')}`);
+      lines.push(`- Note:         ${chalk.magenta('JSON files saved as <eventid>.json')}`);
+    }
+    lines.push(`- Auth:         ${chalk.cyan('Requires valid Nostr event in Authorization header')}`);
+  } else {
+    lines.push(`- Note:         ${chalk.magenta('Inbox functionality is disabled')}`);
   }
 
   lines.push('');
@@ -236,7 +259,8 @@ const argv = minimist(process.argv.slice(2), {
     o: 'owners',
     k: 'key',
     c: 'cert',
-    i: 'invites'
+    i: 'invites',
+    x: 'inbox'
   }
 });
 
@@ -250,6 +274,7 @@ function mergeConfigWithArgs (config, args) {
   if (args.key) config.key = args.key;
   if (args.cert) config.cert = args.cert;
   if (args.invites !== undefined) config.invites = args.invites === true;
+  if (args.inbox !== undefined) config.inbox = args.inbox === true;
 }
 
 // Main execution
@@ -261,7 +286,8 @@ let config = loadConfig() || {
   https: true, // Ensure HTTPS defaults to true
   mode: 'multiuser',
   owners: [],
-  invites: true // Enable invites by default
+  invites: true, // Enable invites by default
+  inbox: true // Enable inbox by default
 };
 
 // Check if there are no command-line arguments

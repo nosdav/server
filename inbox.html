@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NosDav Inbox Tester</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+
+      textarea {
+        height: 120px;
+        resize: vertical;
+        font-family: 'Courier New', monospace;
+      }
+
+      button {
+        background-color: #007bff;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-right: 10px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .generate-btn {
+        background-color: #28a745;
+      }
+
+      .generate-btn:hover {
+        background-color: #1e7e34;
+      }
+
+      .response {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+      }
+
+      .response.success {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+
+      .response.error {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+
+      .response.info {
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+      }
+
+      .key-display {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        word-break: break-all;
+        margin-top: 10px;
+      }
+
+      .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+
+      .mode-info {
+        background-color: #e9ecef;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+
+      .mode-info h3 {
+        margin-top: 0;
+        color: #495057;
+      }
+
+      .mode-info ul {
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🗂️ NosDav Inbox Tester</h1>
+
+      <div class="mode-info">
+        <h3>How to use:</h3>
+        <ul>
+          <li>
+            <strong>Multiuser mode:</strong> Use endpoint like
+            <code>http://localhost:3118/&lt;pubkey&gt;/inbox/</code>
+          </li>
+          <li>
+            <strong>Singleuser mode:</strong> Use endpoint like
+            <code>http://localhost:3118/inbox/</code>
+          </li>
+          <li>Generate a test keypair or use your own private key</li>
+          <li>
+            The JSON will be saved as <code>&lt;eventid&gt;.json</code> in the
+            inbox directory
+          </li>
+        </ul>
+      </div>
+
+      <form id="inboxForm">
+        <div class="form-group">
+          <label for="endpoint">Inbox Endpoint URL:</label>
+          <input
+            type="url"
+            id="endpoint"
+            name="endpoint"
+            placeholder="http://localhost:3118/inbox/ or http://localhost:3118/<pubkey>/inbox/"
+            value="http://localhost:3118/inbox/"
+            required
+          />
+          <div class="help-text">Enter the full inbox endpoint URL</div>
+        </div>
+
+        <div class="form-group">
+          <label for="privateKey">Private Key (hex):</label>
+          <input
+            type="text"
+            id="privateKey"
+            name="privateKey"
+            placeholder="64-character hex private key"
+            required
+          />
+          <button
+            type="button"
+            class="generate-btn"
+            onclick="generateKeypair()"
+          >
+            Generate Test Keypair
+          </button>
+          <div class="help-text">
+            Your private key for signing the Nostr event
+          </div>
+          <div
+            id="publicKeyDisplay"
+            class="key-display"
+            style="display: none"
+          ></div>
+        </div>
+
+        <div class="form-group">
+          <label for="eventKind">Event Kind:</label>
+          <select id="eventKind" name="eventKind">
+            <option value="1">1 (Text Note)</option>
+            <option value="27235">27235 (NIP-98 HTTP Auth)</option>
+            <option value="30000">30000 (Categorized People List)</option>
+            <option value="1984">1984 (Reporting)</option>
+          </select>
+          <div class="help-text">Nostr event kind number</div>
+        </div>
+
+        <div class="form-group">
+          <label for="eventContent">Event Content:</label>
+          <input
+            type="text"
+            id="eventContent"
+            name="eventContent"
+            value="Test inbox post"
+            placeholder="Event content"
+          />
+          <div class="help-text">Content field of the Nostr event</div>
+        </div>
+
+        <div class="form-group">
+          <label for="jsonData">JSON Data to Post:</label>
+          <textarea
+            id="jsonData"
+            name="jsonData"
+            placeholder="Enter JSON data to post to inbox"
+            required
+          >
+{
+  "message": "Hello from inbox tester!",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "data": {
+    "test": true,
+    "value": 42
+  }
+}</textarea
+          >
+          <div class="help-text">
+            The JSON data that will be saved to the inbox
+          </div>
+        </div>
+
+        <button type="submit" id="submitBtn">📤 Post to Inbox</button>
+        <button type="button" onclick="clearForm()">🗑️ Clear Form</button>
+      </form>
+
+      <div id="response" class="response" style="display: none"></div>
+    </div>
+
+    <script>
+      // Simple implementation of Nostr key generation and signing
+      // Note: This is a simplified version for testing purposes
+
+      function generateRandomHex(length) {
+        const array = new Uint8Array(length / 2)
+        crypto.getRandomValues(array)
+        return Array.from(array, byte =>
+          byte.toString(16).padStart(2, '0')
+        ).join('')
+      }
+
+      function generateKeypair() {
+        const privateKey = generateRandomHex(64)
+        document.getElementById('privateKey').value = privateKey
+
+        // Use consistent public key derivation
+        const publicKey = privateKey.slice(0, 64) // Mock derivation
+
+        const display = document.getElementById('publicKeyDisplay')
+        display.innerHTML = `<strong>Public Key:</strong> ${publicKey}`
+        display.style.display = 'block'
+
+        showResponse('Generated new test keypair!', 'info')
+      }
+
+      function generateEventId() {
+        return generateRandomHex(64)
+      }
+
+      function createNostrEvent(privateKey, kind, content) {
+        const now = Math.floor(Date.now() / 1000)
+        const eventId = generateEventId()
+
+        // Use consistent public key derivation
+        const publicKey = privateKey.slice(0, 64)
+
+        const event = {
+          id: eventId,
+          pubkey: publicKey,
+          created_at: now,
+          kind: parseInt(kind),
+          tags: [],
+          content: content,
+          sig: 'mock' + generateRandomHex(124) // Mock signature with 'mock' prefix
+        }
+
+        return event
+      }
+
+      function showResponse(message, type = 'info') {
+        const responseDiv = document.getElementById('response')
+        responseDiv.textContent = message
+        responseDiv.className = `response ${type}`
+        responseDiv.style.display = 'block'
+      }
+
+      function clearForm() {
+        document.getElementById('inboxForm').reset()
+        document.getElementById('publicKeyDisplay').style.display = 'none'
+        document.getElementById('response').style.display = 'none'
+
+        // Reset to default values
+        document.getElementById('endpoint').value =
+          'http://localhost:3118/inbox/'
+        document.getElementById('eventContent').value = 'Test inbox post'
+        document.getElementById('jsonData').value = `{
+  "message": "Hello from inbox tester!",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "data": {
+    "test": true,
+    "value": 42
+  }
+}`
+      }
+
+      document
+        .getElementById('inboxForm')
+        .addEventListener('submit', async function (e) {
+          e.preventDefault()
+
+          const submitBtn = document.getElementById('submitBtn')
+          submitBtn.disabled = true
+          submitBtn.textContent = '⏳ Posting...'
+
+          try {
+            const formData = new FormData(e.target)
+            const endpoint = formData.get('endpoint')
+            const privateKey = formData.get('privateKey')
+            const eventKind = formData.get('eventKind')
+            const eventContent = formData.get('eventContent')
+            const jsonData = formData.get('jsonData')
+
+            // Validate inputs
+            if (!endpoint || !privateKey || !jsonData) {
+              throw new Error('Please fill in all required fields')
+            }
+
+            // Validate JSON
+            let parsedJson
+            try {
+              parsedJson = JSON.parse(jsonData)
+            } catch (err) {
+              throw new Error('Invalid JSON data: ' + err.message)
+            }
+
+            // Validate private key format
+            if (!/^[0-9a-fA-F]{64}$/.test(privateKey)) {
+              throw new Error('Private key must be 64 hex characters')
+            }
+
+            // Create Nostr event
+            const event = createNostrEvent(privateKey, eventKind, eventContent)
+
+            // Encode event for Authorization header
+            const encodedEvent = btoa(JSON.stringify(event))
+
+            showResponse(
+              `Creating Nostr event...\nEvent ID: ${event.id}\nPublic Key: ${event.pubkey}\n\nPosting to: ${endpoint}`,
+              'info'
+            )
+
+            // Make the POST request
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                Authorization: `Nostr ${encodedEvent}`,
+                'Content-Type': 'application/json'
+              },
+              body: jsonData
+            })
+
+            const responseText = await response.text()
+
+            if (response.ok) {
+              let responseData
+              try {
+                responseData = JSON.parse(responseText)
+              } catch {
+                responseData = { message: responseText }
+              }
+
+              showResponse(
+                `✅ SUCCESS!\n\n` +
+                  `Status: ${response.status}\n` +
+                  `Event ID: ${event.id}\n` +
+                  `Filename: ${responseData.filename || event.id + '.json'}\n` +
+                  `Message: ${
+                    responseData.message || 'File created successfully'
+                  }\n\n` +
+                  `Full Response:\n${JSON.stringify(responseData, null, 2)}`,
+                'success'
+              )
+            } else {
+              showResponse(
+                `❌ ERROR!\n\n` +
+                  `Status: ${response.status}\n` +
+                  `Response: ${responseText}\n\n` +
+                  `Event ID: ${event.id}\n` +
+                  `Endpoint: ${endpoint}`,
+                'error'
+              )
+            }
+          } catch (error) {
+            showResponse(
+              `❌ ERROR!\n\n` +
+                `${error.message}\n\n` +
+                `Please check your inputs and try again.`,
+              'error'
+            )
+          } finally {
+            submitBtn.disabled = false
+            submitBtn.textContent = '📤 Post to Inbox'
+          }
+        })
+
+      // Auto-update timestamp in JSON data
+      function updateTimestamp() {
+        const jsonTextarea = document.getElementById('jsonData')
+        const currentJson = jsonTextarea.value
+
+        try {
+          const parsed = JSON.parse(currentJson)
+          if (parsed.timestamp) {
+            parsed.timestamp = new Date().toISOString()
+            jsonTextarea.value = JSON.stringify(parsed, null, 2)
+          }
+        } catch {
+          // Ignore JSON parse errors
+        }
+      }
+
+      // Update timestamp every 10 seconds
+      setInterval(updateTimestamp, 10000)
+
+      // Initialize with current timestamp
+      updateTimestamp()
+    </script>
+  </body>
+</html>

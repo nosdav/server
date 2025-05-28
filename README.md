@@ -31,7 +31,8 @@ NosDAV Server is a simple and secure file server implemented using Node.js, allo
 &nbsp;&nbsp;✓&nbsp; CORS handling  
 &nbsp;&nbsp;✓&nbsp; Basic file validation  
 &nbsp;&nbsp;✓&nbsp; Proper response headers  
-&nbsp;&nbsp;✓&nbsp; Invite system for controlling who can create directories
+&nbsp;&nbsp;✓&nbsp; Invite system for controlling who can create directories  
+&nbsp;&nbsp;✓&nbsp; Inbox system for posting JSON files with automatic event ID naming
 
 ## Requirements
 
@@ -72,6 +73,7 @@ Options
     -c or --cert: The path to the certificate file. Default: './fullchain.pem' (optional)
     -o or --owners: pubkeys (csv) of owners in singleuser mode (optional)
     -i or --invites: Enable or disable the invite system. Default: true (enabled)
+    -x or --inbox: Enable or disable the inbox system. Default: true (enabled)
 
 The server will listen for incoming requests at https://localhost:3118 if port is not set
 
@@ -120,6 +122,62 @@ curl -X POST https://your-server.com/api/invites \
 ```
 
 Note: Only server owners (as defined in the config.json file) can manage invites.
+
+## Inbox System
+
+The inbox system allows authenticated users to POST JSON files that are automatically saved with the event ID as the filename.
+
+### Usage
+
+**Multiuser Mode:**
+
+```bash
+POST /<pubkey>/inbox/
+Authorization: Nostr <base64-encoded-signed-event>
+Content-Type: application/json
+
+{
+  "your": "json",
+  "data": "here"
+}
+```
+
+**Singleuser Mode:**
+
+```bash
+POST /inbox/
+Authorization: Nostr <base64-encoded-signed-event>
+Content-Type: application/json
+
+{
+  "your": "json",
+  "data": "here"
+}
+```
+
+### How it works
+
+1. The server extracts the event ID from the Authorization header
+2. Validates the Nostr event signature
+3. Saves the JSON content as `<eventid>.json` in the appropriate inbox directory
+4. Returns a success response with the filename
+
+### Authentication
+
+The Authorization header must contain a valid, signed Nostr event:
+
+- Format: `Authorization: Nostr <base64-encoded-event>`
+- The event must be properly signed and verifiable
+- In multiuser mode, you can only post to your own inbox (pubkey must match)
+- In singleuser mode, only owners can post to the inbox
+
+### Configuration
+
+Enable/disable the inbox system:
+
+- CLI: `--inbox true/false` or `-x true/false`
+- Interactive setup: Answer the inbox system prompt
+- Config file: Set `"inbox": true/false`
 
 ## JavaScript Library
 
