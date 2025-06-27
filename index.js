@@ -4,6 +4,7 @@ import https from 'https'
 import fs from 'fs'
 import url from 'url'
 import path from 'path'
+import { spawn } from 'child_process'
 
 /**
  * Manages invites for pubkeys to access the server.
@@ -97,6 +98,99 @@ function removeInvite (pubkey) {
 }
 
 /**
+ * Handles git HTTP requests using git http-backend
+ * 
+ * @param {object} req - The HTTP request object
+ * @param {object} res - The HTTP response object
+ * @param {string} rootDir - The root directory where git repositories are stored
+ * @param {string} urlPath - The decoded URL path
+ * @returns {boolean} True if the request was handled, false otherwise
+ */
+function handleGitRequest (req, res, rootDir, urlPath) {
+  // We only intercept URLs that *begin* with "/something.git"
+  const match = urlPath.match(/^\/([^/]+\.git)(\/.*)?$/);
+  if (!match) return false; // not a Git path → fall through
+
+  const repoRelative = match[1]; // "my-repo.git"
+  const repoAbs = path.join(rootDir, repoRelative);
+
+  // Does the requested repo actually exist on disk?
+  if (!fs.existsSync(repoAbs) || !fs.statSync(repoAbs).isDirectory()) {
+    res.statusCode = 404;
+    res.end('Repository not found');
+    return true;
+  }
+
+  /* Each Git request (info/refs, git-upload-pack, git-receive-pack, etc.) is
+     delegated to `git http-backend`, exactly the same CGI
+     program Apache/Nginx use. */
+  const env = {
+    ...process.env,
+    GIT_PROJECT_ROOT: rootDir,
+    GIT_HTTP_EXPORT_ALL: '', // allow read-only
+    GIT_HTTP_RECEIVE_PACK: 'true', // enable push support
+    PATH_INFO: urlPath,
+    REQUEST_METHOD: req.method,
+    CONTENT_TYPE: req.headers['content-type'] || '',
+    QUERY_STRING: req.url.split('?')[1] || '',
+    REMOTE_USER: '', // anonymous
+    CONTENT_LENGTH: req.headers['content-length'] || '0',
+  };
+
+  const child = spawn('git', ['http-backend'], { env });
+
+  let buffer = Buffer.alloc(0);
+  let headersSent = false;
+
+  child.stdout.on('data', (data) => {
+    buffer = Buffer.concat([buffer, data]);
+
+    if (!headersSent) {
+      const headerEnd = buffer.indexOf('\r\n\r\n');
+      if (headerEnd !== -1) {
+        const headerSection = buffer.subarray(0, headerEnd).toString();
+        const bodySection = buffer.subarray(headerEnd + 4);
+
+        // Parse CGI headers
+        const lines = headerSection.split('\r\n');
+        for (const line of lines) {
+          const colonIndex = line.indexOf(':');
+          if (colonIndex > 0) {
+            const key = line.substring(0, colonIndex).trim();
+            const value = line.substring(colonIndex + 1).trim();
+            res.setHeader(key, value);
+          }
+        }
+
+        headersSent = true;
+        res.write(bodySection);
+        buffer = Buffer.alloc(0);
+      }
+    } else {
+      res.write(buffer);
+      buffer = Buffer.alloc(0);
+    }
+  });
+
+  child.stdout.on('end', () => {
+    res.end();
+  });
+
+  req.pipe(child.stdin);
+  child.stderr.pipe(process.stderr);
+
+  child.on('error', err => {
+    console.error('Failed to spawn git-http-backend:', err);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.end('Internal error');
+    }
+  });
+
+  return true; // Request was handled
+}
+
+/**
  * Creates a request handler function with the given rootDir, mode, and owners.
  *
  * @param {string} rootDir - The root directory for all files.
@@ -104,13 +198,19 @@ function removeInvite (pubkey) {
  * @param {Array<string>} owners - The public keys of the owners (used in 'singleuser' mode).
  * @param {boolean} invitesEnabled - Whether the invite system is enabled.
  * @param {boolean} inboxEnabled - Whether the inbox system is enabled.
+ * @param {boolean} gitEnabled - Whether git clone support is enabled.
  * @returns {function} A request handler function that handles incoming HTTP requests based on the specified rootDir, mode, and owners.
  */
-function createRequestHandler (rootDir, mode, owners, invitesEnabled = true, inboxEnabled = true) {
+function createRequestHandler (rootDir, mode, owners, invitesEnabled = true, inboxEnabled = true, gitEnabled = false) {
   return function handleRequest (req, res) {
     const { method, url: reqUrl, headers } = req
     const { pathname } = url.parse(reqUrl)
     const adjustedPathname = pathname.endsWith('/') ? `${pathname}index.html` : pathname
+
+    // Handle git requests first if git is enabled
+    if (gitEnabled && handleGitRequest(req, res, rootDir, decodeURIComponent(pathname))) {
+      return; // Git request was handled, return early
+    }
 
     // const targetDir = path.dirname(pathname)
     const targetDir = path.dirname(pathname).split(path.sep)[1]

@@ -43,7 +43,8 @@ function askQuestion (index, config, callback) {
     `Enter the mode (singleuser/multiuser) [${chalk.magenta(config.mode)}]: `,
     `Enter the owners (comma-separated) [${chalk.cyan(config.owners.join(','))}]: `,
     `Enable invite system (true/false) [${chalk.cyan(config.invites)}]: `,
-    `Enable inbox system (true/false) [${chalk.cyan(config.inbox)}]: `
+    `Enable inbox system (true/false) [${chalk.cyan(config.inbox)}]: `,
+    `Enable git clone support (true/false) [${chalk.cyan(config.git)}]: `
   ];
 
   if (index < questions.length) {
@@ -74,6 +75,9 @@ function askQuestion (index, config, callback) {
           break;
         case 6:
           config.inbox = answer.toLowerCase() === 'true' || (answer === '' && config.inbox);
+          break;
+        case 7:
+          config.git = answer.toLowerCase() === 'true' || (answer === '' && config.git);
           break;
       }
       rl.close();
@@ -127,8 +131,8 @@ function startServer (config) {
   }
 
   const server = config.https
-    ? https.createServer(sslOptions, createRequestHandler(config.root, config.mode, config.owners, config.invites, config.inbox))
-    : http.createServer(createRequestHandler(config.root, config.mode, config.owners, config.invites, config.inbox));
+    ? https.createServer(sslOptions, createRequestHandler(config.root, config.mode, config.owners, config.invites, config.inbox, config.git))
+    : http.createServer(createRequestHandler(config.root, config.mode, config.owners, config.invites, config.inbox, config.git));
 
   server.listen(config.port, '0.0.0.0', () => {
     console.log();
@@ -199,6 +203,19 @@ function displayInfo (config, localAddress, networkAddress) {
     lines.push(`- Note:         ${chalk.magenta('Inbox functionality is disabled')}`);
   }
 
+  // Add git system information
+  lines.push('');
+  lines.push(chalk.bold('Git Support:'));
+  lines.push('');
+  lines.push(`- Status:       ${config.git ? chalk.green('Enabled') : chalk.red('Disabled')}`);
+
+  if (config.git) {
+    lines.push(`- Clone URL:    ${chalk.yellow('git clone <server_url>/<repo>.git')}`);
+    lines.push(`- Note:         ${chalk.magenta('Uses git http-backend for clone/fetch operations')}`);
+  } else {
+    lines.push(`- Note:         ${chalk.magenta('Git clone functionality is disabled')}`);
+  }
+
   lines.push('');
   lines.push(chalk.bold('Serving!'));
   lines.push('');
@@ -260,7 +277,8 @@ const argv = minimist(process.argv.slice(2), {
     k: 'key',
     c: 'cert',
     i: 'invites',
-    x: 'inbox'
+    x: 'inbox',
+    g: 'git'
   }
 });
 
@@ -275,6 +293,7 @@ function mergeConfigWithArgs (config, args) {
   if (args.cert) config.cert = args.cert;
   if (args.invites !== undefined) config.invites = args.invites === true;
   if (args.inbox !== undefined) config.inbox = args.inbox === true;
+  if (args.git !== undefined) config.git = args.git === true;
 }
 
 // Main execution
@@ -287,7 +306,8 @@ let config = loadConfig() || {
   mode: 'multiuser',
   owners: [],
   invites: true, // Enable invites by default
-  inbox: true // Enable inbox by default
+  inbox: true, // Enable inbox by default
+  git: false // Enable git support by default (disabled for security)
 };
 
 // Check if there are no command-line arguments
