@@ -181,6 +181,7 @@ function handleGitRequest (req, res, rootDir, urlPath) {
     GIT_PROJECT_ROOT: rootDir,
     GIT_HTTP_EXPORT_ALL: '', // allow read-only
     GIT_HTTP_RECEIVE_PACK: 'true', // enable push support
+    GIT_CONFIG_PARAMETERS: `'uploadpack.allowTipSHA1InWant=true'`, // allow fetching specific commits by SHA
     PATH_INFO: actualUrlPath,
     REQUEST_METHOD: req.method,
     CONTENT_TYPE: req.headers['content-type'] || '',
