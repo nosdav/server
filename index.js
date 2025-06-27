@@ -107,18 +107,70 @@ function removeInvite (pubkey) {
  * @returns {boolean} True if the request was handled, false otherwise
  */
 function handleGitRequest (req, res, rootDir, urlPath) {
-  // We only intercept URLs that *begin* with "/something.git"
-  const match = urlPath.match(/^\/([^/]+\.git)(\/.*)?$/);
-  if (!match) return false; // not a Git path → fall through
+  // Check for git service requests (info/refs, git-upload-pack, git-receive-pack)
+  const isGitService = urlPath.includes('/info/refs') ||
+    urlPath.includes('/git-upload-pack') ||
+    urlPath.includes('/git-receive-pack');
 
-  const repoRelative = match[1]; // "my-repo.git"
+  if (!isGitService) {
+    // Also check for URLs ending with .git
+    const gitRepoMatch = urlPath.match(/^\/([^/]+\.git)(\/.*)?$/);
+    if (!gitRepoMatch) return false; // not a Git path → fall through
+  }
+
+  // Extract repository path - handle both regular directories and .git suffixed ones
+  let repoRelative, actualUrlPath;
+
+  if (urlPath.includes('.git')) {
+    // Handle .git suffixed URLs
+    const match = urlPath.match(/^\/([^/]+\.git)(\/.*)?$/);
+    if (match) {
+      repoRelative = match[1]; // "my-repo.git"
+      actualUrlPath = urlPath;
+    } else {
+      return false;
+    }
+  } else {
+    // Handle regular directory URLs with git services
+    const pathParts = urlPath.split('/').filter(part => part);
+    if (pathParts.length < 2) return false;
+
+    repoRelative = pathParts[0]; // The directory name
+    actualUrlPath = urlPath;
+  }
+
   const repoAbs = path.join(rootDir, repoRelative);
 
-  // Does the requested repo actually exist on disk?
-  if (!fs.existsSync(repoAbs) || !fs.statSync(repoAbs).isDirectory()) {
+  // Check if this is a git repository (either bare or regular)
+  let gitDir = repoAbs;
+  let isRegularRepo = false;
+
+  if (!fs.existsSync(repoAbs)) {
     res.statusCode = 404;
     res.end('Repository not found');
     return true;
+  }
+
+  if (!fs.statSync(repoAbs).isDirectory()) {
+    res.statusCode = 404;
+    res.end('Repository not found');
+    return true;
+  }
+
+  // Check if it's a regular repo with .git subdirectory
+  const dotGitPath = path.join(repoAbs, '.git');
+  if (fs.existsSync(dotGitPath) && fs.statSync(dotGitPath).isDirectory()) {
+    gitDir = dotGitPath;
+    isRegularRepo = true;
+  } else {
+    // Check if it's a bare repository by looking for git objects
+    const objectsPath = path.join(repoAbs, 'objects');
+    const refsPath = path.join(repoAbs, 'refs');
+    if (!fs.existsSync(objectsPath) || !fs.existsSync(refsPath)) {
+      res.statusCode = 404;
+      res.end('Not a git repository');
+      return true;
+    }
   }
 
   /* Each Git request (info/refs, git-upload-pack, git-receive-pack, etc.) is
@@ -129,13 +181,18 @@ function handleGitRequest (req, res, rootDir, urlPath) {
     GIT_PROJECT_ROOT: rootDir,
     GIT_HTTP_EXPORT_ALL: '', // allow read-only
     GIT_HTTP_RECEIVE_PACK: 'true', // enable push support
-    PATH_INFO: urlPath,
+    PATH_INFO: actualUrlPath,
     REQUEST_METHOD: req.method,
     CONTENT_TYPE: req.headers['content-type'] || '',
     QUERY_STRING: req.url.split('?')[1] || '',
     REMOTE_USER: '', // anonymous
     CONTENT_LENGTH: req.headers['content-length'] || '0',
   };
+
+  // For regular repositories, set GIT_DIR to point to the .git directory
+  if (isRegularRepo) {
+    env.GIT_DIR = gitDir;
+  }
 
   const child = spawn('git', ['http-backend'], { env });
 
