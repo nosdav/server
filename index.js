@@ -265,7 +265,10 @@ function createRequestHandler (rootDir, mode, owners, invitesEnabled = true, inb
     const { pathname } = url.parse(reqUrl)
     const adjustedPathname = pathname.endsWith('/') ? `${pathname}index.html` : pathname
 
-    // Handle git requests first if git is enabled
+    // Set CORS headers first for all requests
+    setCorsHeaders(res)
+
+    // Handle git requests if git is enabled
     if (gitEnabled && handleGitRequest(req, res, rootDir, decodeURIComponent(pathname))) {
       return; // Git request was handled, return early
     }
@@ -273,9 +276,6 @@ function createRequestHandler (rootDir, mode, owners, invitesEnabled = true, inb
     // const targetDir = path.dirname(pathname)
     const targetDir = path.dirname(pathname).split(path.sep)[1]
     console.log('targetDir', targetDir)
-
-    // Set CORS headers
-    setCorsHeaders(res)
 
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
