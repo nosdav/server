@@ -1,0 +1,17 @@
+# SSL certificates
+*.pem
+
+# Data and config
+data/
+config.json
+invites.json
+
+# Security audit
+SECURITY_AUDIT.md
+
+# Test files
+test/
+*.test.js
+
+# Editor
+.tern-port

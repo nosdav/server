@@ -105,7 +105,7 @@ dist
 # custom
 data/
 config.json
-fullchain.pem
-privkey.pem
+*.pem
 invites.json
 .tern-port
+SECURITY_AUDIT.md
