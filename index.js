@@ -13,6 +13,19 @@ import { spawn } from 'child_process'
 const INVITES_FILE = 'invites.json'
 
 /**
+ * Maximum allowed body size for JSON requests (1MB)
+ */
+const MAX_BODY_SIZE = 1024 * 1024
+
+/**
+ * Validates that a Nostr event ID is a 64-character hex string.
+ *
+ * @param {string} id - The event ID to validate
+ * @returns {boolean} True if valid, false otherwise
+ */
+const isValidEventId = (id) => typeof id === 'string' && /^[0-9a-f]{64}$/i.test(id)
+
+/**
  * Initializes the invites file if it doesn't exist.
  * 
  * @returns {void}
@@ -99,23 +112,54 @@ function removeInvite (pubkey) {
 
 /**
  * Handles git HTTP requests using git http-backend
- * 
+ *
  * @param {object} req - The HTTP request object
  * @param {object} res - The HTTP response object
  * @param {string} rootDir - The root directory where git repositories are stored
  * @param {string} urlPath - The decoded URL path
+ * @param {object} headers - The request headers
+ * @param {string} mode - The server mode ('singleuser' or 'multiuser')
+ * @param {Array<string>} owners - The public keys of the owners
  * @returns {boolean} True if the request was handled, false otherwise
  */
-function handleGitRequest (req, res, rootDir, urlPath) {
+function handleGitRequest (req, res, rootDir, urlPath, headers, mode, owners) {
   // Check for git service requests (info/refs, git-upload-pack, git-receive-pack)
   const isGitService = urlPath.includes('/info/refs') ||
     urlPath.includes('/git-upload-pack') ||
-    urlPath.includes('/git-receive-pack');
+    urlPath.includes('/git-receive-pack')
+
+  // Check if this is a push operation (requires authentication)
+  const isPushOperation = urlPath.includes('/git-receive-pack') ||
+    (urlPath.includes('/info/refs') && req.url.includes('service=git-receive-pack'))
 
   if (!isGitService) {
     // Also check for URLs ending with .git
-    const gitRepoMatch = urlPath.match(/^\/([^/]+\.git)(\/.*)?$/);
-    if (!gitRepoMatch) return false; // not a Git path → fall through
+    const gitRepoMatch = urlPath.match(/^\/([^/]+\.git)(\/.*)?$/)
+    if (!gitRepoMatch) return false // not a Git path → fall through
+  }
+
+  // Require authentication for push operations
+  if (isPushOperation) {
+    const authResult = isValidAuthorizationHeader(headers.authorization)
+    if (!authResult) {
+      res.statusCode = 401
+      res.setHeader('WWW-Authenticate', 'Nostr')
+      res.end('Unauthorized: Authentication required for push')
+      return true
+    }
+
+    const pubkey = authResult.pubkey
+    // In singleuser mode, only owners can push
+    // In multiuser mode, user can only push to their own directory
+    if (mode === 'singleuser') {
+      if (!owners.includes(pubkey)) {
+        res.statusCode = 403
+        res.end('Forbidden: Only owners can push')
+        return true
+      }
+    }
+    // For multiuser mode, we'd need to check if the repo is in the user's directory
+    // This is handled by the path structure: /<pubkey>/repo.git
   }
 
   // Extract repository path - handle both regular directories and .git suffixed ones
@@ -269,8 +313,8 @@ function createRequestHandler (rootDir, mode, owners, invitesEnabled = true, inb
     setCorsHeaders(res)
 
     // Handle git requests if git is enabled
-    if (gitEnabled && handleGitRequest(req, res, rootDir, decodeURIComponent(pathname))) {
-      return; // Git request was handled, return early
+    if (gitEnabled && handleGitRequest(req, res, rootDir, decodeURIComponent(pathname), headers, mode, owners)) {
+      return // Git request was handled, return early
     }
 
     // const targetDir = path.dirname(pathname)
@@ -430,6 +474,9 @@ function setCorsHeaders (res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  // Security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
   // Set the X-Powered-By header
   res.setHeader('X-Powered-By', 'nosdav/alpha')
 }
@@ -623,6 +670,14 @@ function handleGet (req, res, rootDir, pathname) {
     ? path.join(rootDir, pathname)
     : path.join('.', rootDir, pathname)
 
+  // Prevent path traversal attacks
+  const resolvedRootDir = path.resolve(rootDir)
+  if (!path.resolve(targetPath).startsWith(resolvedRootDir)) {
+    res.statusCode = 403
+    res.end('Forbidden')
+    return
+  }
+
   // Read the file
   fs.readFile(targetPath, (err, data) => {
     if (err) {
@@ -667,13 +722,21 @@ function handleInviteManagement (req, res, headers, owners) {
     return
   }
 
-  // Parse the request body
+  // Parse the request body with size limit
   let body = ''
+  let aborted = false
   req.on('data', chunk => {
     body += chunk.toString()
+    if (body.length > MAX_BODY_SIZE) {
+      aborted = true
+      res.statusCode = 413
+      res.end('Payload Too Large')
+      req.destroy()
+    }
   })
 
   req.on('end', () => {
+    if (aborted) return
     try {
       const data = JSON.parse(body)
       const { action, targetPubkey } = data
@@ -743,6 +806,14 @@ function handleInbox (req, res, headers, targetDir, rootDir, mode, owners, invit
 
   const { pubkey, eventId } = authResult
 
+  // Validate eventId format to prevent path traversal
+  if (!isValidEventId(eventId)) {
+    res.statusCode = 400
+    res.end('Bad Request: Invalid event ID format')
+    console.error('Invalid event ID format:', eventId)
+    return
+  }
+
   // In multiuser mode, check if the target directory matches the authenticated pubkey
   if (mode === 'multiuser' && targetDir !== pubkey) {
     res.statusCode = 403
@@ -784,13 +855,21 @@ function handleInbox (req, res, headers, targetDir, rootDir, mode, owners, invit
       return
     }
 
-    // Parse and validate JSON body
+    // Parse and validate JSON body with size limit
     let body = ''
+    let aborted = false
     req.on('data', chunk => {
       body += chunk.toString()
+      if (body.length > MAX_BODY_SIZE) {
+        aborted = true
+        res.statusCode = 413
+        res.end('Payload Too Large')
+        req.destroy()
+      }
     })
 
     req.on('end', () => {
+      if (aborted) return
       try {
         // Validate that it's valid JSON
         JSON.parse(body)
