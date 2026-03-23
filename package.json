@@ -1,31 +1,33 @@
 {
   "name": "nosdav-server",
-  "version": "0.0.63",
-  "description": "nosdav server",
-  "main": "index.js",
+  "version": "0.0.64",
+  "description": "Nostr-native Solid storage server — powered by JSS",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node bin/nosdav.js",
-    "dev": "node bin/nosdav.js"
+    "start": "node bin/nosdav.js"
   },
   "bin": {
-    "nosdav": "bin/startserver.sh"
+    "nosdav": "bin/nosdav.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nosdav/server.git"
   },
   "author": "Melvin Carvalho",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "bugs": {
     "url": "https://github.com/nosdav/server/issues"
   },
   "homepage": "https://github.com/nosdav/server#readme",
+  "keywords": [
+    "nostr",
+    "nosdav",
+    "solid",
+    "storage",
+    "webdav",
+    "linked-data"
+  ],
   "dependencies": {
-    "chalk": "^5.3.0",
-    "clipboardy": "^4.0.0",
-    "minimist": "^1.2.8",
-    "nostr-tools": "^1.8.1"
+    "javascript-solid-server": "^0.0.117"
   }
 }

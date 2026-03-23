@@ -1,269 +1,37 @@
-<div align="center">  
-  <h1>nosdav-server</h1>
-</div>
+# NosDAV Server
 
-<div align="center">  
-<i>nosdav-server</i>
-</div>
+Nostr-native Solid storage server. Powered by [JSS](https://github.com/JavaScriptSolidServer/JavaScriptSolidServer) with [NosDAV Browser](https://github.com/nosdav/browser).
 
----
-
-<div align="center">
-<h4>Documentation</h4>
-</div>
-
----
-
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/nosdav/server/blob/gh-pages/LICENSE)
-[![npm](https://img.shields.io/npm/v/nosdav-server)](https://npmjs.com/package/nosdav-server)
-[![npm](https://img.shields.io/npm/dw/nosdav-server.svg)](https://npmjs.com/package/nosdav-server)
-[![Github Stars](https://img.shields.io/github/stars/nosdav/server.svg)](https://github.com/nosdav/server/)
-
-## Introduction
-
-NosDAV Server is a simple and secure file server implemented using Node.js, allowing clients to store and retrieve files over HTTPS. The server validates Nostr events in the authorization header and ensures that only authorized users can store and access files.
-
-## Features
-
-&nbsp;&nbsp;✓&nbsp; HTTP(S) server  
-&nbsp;&nbsp;✓&nbsp; PUT and GET requests for uploading and downloading files  
-&nbsp;&nbsp;✓&nbsp; Nostr event validation using [nostr-tools](https://github.com/nbd-wtf/nostr-tools) and [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)  
-&nbsp;&nbsp;✓&nbsp; CORS handling  
-&nbsp;&nbsp;✓&nbsp; Basic file validation  
-&nbsp;&nbsp;✓&nbsp; Proper response headers  
-&nbsp;&nbsp;✓&nbsp; Invite system for controlling who can create directories  
-&nbsp;&nbsp;✓&nbsp; Inbox system for posting JSON files with automatic event ID naming
-
-## Requirements
-
-- Node.js v12 or higher
-
-## Installation
-
-Clone the repository and install:
+## Install
 
 ```bash
-git clone https://github.com/nosdav/server.git && cd server
-npm install
-```
-
-## Setup
-
-To use this server using, you need a valid private key (privkey.pem) and a certificate (fullchain.pem) for HTTPS. Place these files in the project directory or update the file paths in the options object when creating the server. An example way to generate these is below.
-
-```bash
-openssl req -outform PEM -keyform PEM -new -x509 -sha256 -newkey rsa:2048 -nodes -keyout ./privkey.pem -days 365 -out ./fullchain.pem
+npm install -g nosdav-server
 ```
 
 ## Usage
 
-Start the server:
-
 ```bash
-node server.js --key private-key.pem --cert fullchain.pem --port your_port
+nosdav                                    # start with defaults (port 3000)
+nosdav --port 8080 --root ./mydata        # custom port and data dir
+nosdav --single-user --single-user-name me  # personal pod
+nosdav --multiuser --subdomains --idp     # pod provider
 ```
 
-Options
-
-    -p or --port: The port on which the server should listen. Default: 3118
-    -r or --root: The root directory for file storage. Default: 'data'
-    -s or --https: A flag to enable HTTPS. Default: true (HTTPS)
-    -m or --mode: singleuser or multiuser. Default: multiuser
-    -k or --key: The path to the private key file. Default: './privkey.pem' (optional)
-    -c or --cert: The path to the certificate file. Default: './fullchain.pem' (optional)
-    -o or --owners: pubkeys (csv) of owners in singleuser mode (optional)
-    -i or --invites: Enable or disable the invite system. Default: true (enabled)
-    -x or --inbox: Enable or disable the inbox system. Default: true (enabled)
-
-The server will listen for incoming requests at https://localhost:3118 if port is not set
-
-In multiuser mode the pubkey will be used to create per user directories.
-
-## Invite System
-
-The server includes an invite system that controls which pubkeys can create top-level directories in multiuser mode. This helps prevent spam and unauthorized usage of your server.
-
-### How It Works
-
-- Only invited pubkeys can create top-level directories in multiuser mode
-- Server owners are automatically added to the invite list
-- Invites are stored in an `invites.json` file in the server root directory
-- The invite system can be enabled or disabled using the `-i` or `--invites` flag
-
-### Managing Invites
-
-You can manage invites through the `/api/invites` API endpoint:
-
-#### Adding an Invite
-
-```bash
-curl -X POST https://your-server.com/api/invites \
-  -H "Authorization: Nostr <base64-encoded-nostr-event>" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "add", "targetPubkey": "pubkey-to-invite"}'
-```
-
-#### Removing an Invite
-
-```bash
-curl -X POST https://your-server.com/api/invites \
-  -H "Authorization: Nostr <base64-encoded-nostr-event>" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "remove", "targetPubkey": "pubkey-to-remove"}'
-```
-
-#### Listing All Invites
-
-```bash
-curl -X POST https://your-server.com/api/invites \
-  -H "Authorization: Nostr <base64-encoded-nostr-event>" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "list", "targetPubkey": "any-value"}'
-```
-
-Note: Only server owners (as defined in the config.json file) can manage invites.
-
-## Inbox System
-
-The inbox system allows authenticated users to POST JSON files that are automatically saved with the event ID as the filename.
-
-### Usage
-
-**Multiuser Mode:**
-
-```bash
-POST /<pubkey>/inbox/
-Authorization: Nostr <base64-encoded-signed-event>
-Content-Type: application/json
-
-{
-  "your": "json",
-  "data": "here"
-}
-```
-
-**Singleuser Mode:**
-
-```bash
-POST /inbox/
-Authorization: Nostr <base64-encoded-signed-event>
-Content-Type: application/json
-
-{
-  "your": "json",
-  "data": "here"
-}
-```
-
-### How it works
-
-1. The server extracts the event ID from the Authorization header
-2. Validates the Nostr event signature
-3. Saves the JSON content as `<eventid>.json` in the appropriate inbox directory
-4. Returns a success response with the filename
-
-### Authentication
-
-The Authorization header must contain a valid, signed Nostr event:
-
-- Format: `Authorization: Nostr <base64-encoded-event>`
-- The event must be properly signed and verifiable
-- In multiuser mode, you can only post to your own inbox (pubkey must match)
-- In singleuser mode, only owners can post to the inbox
-
-### Configuration
-
-Enable/disable the inbox system:
-
-- CLI: `--inbox true/false` or `-x true/false`
-- Interactive setup: Answer the inbox system prompt
-- Config file: Set `"inbox": true/false`
-
-## JavaScript Library
-
-```JavaScript
-import http from 'http';
-import { createRequestHandler } from 'nostr-server-library';
-
-const port = 3000;
-const rootDir = './data'; // The root directory where all files will be stored
-const mode = 'singleuser'; // The server mode: 'singleuser' or 'multiuser'
-const owners = ['public_key1','public_key2']; // array of public keys
-
-const requestHandler = createRequestHandler(rootDir, mode, owners);
-
-const server = http.createServer(requestHandler);
-
-server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}/`);
-});
-```
-
-## API Endpoints
-
-### PUT /:nostrid/:filename
-
-Upload a file for the given Nostr.
-
-Header: Authorization: Nostr base64(NostrEvent)
-
-```json
-{
-  "kind": 27235,
-  "created_at": "Math.floor(Date.now() / 1000)",
-  "tags": [["u", "path"]],
-  "content": ""
-}
-```
-
-Signed with the pubkey of the user.
-
-Content-Type can vary according to the file being uploaded.
-
-### GET /:nostrid/:filename
-
-Download a file by its name for a specific Nostr.
-
-Where nostrid is the pubkey of the user, but only in multiuser mode
-
-## Docker
-
-### Building the Docker Image
-
-First, you need to build the Docker image for the server. Navigate to the root directory of the project, where the Dockerfile is located, and run the following command:
-
-```
-docker build -t nosdav .
-```
-
-### Running the Server with Docker
-
-Now that you have built the Docker image, you can run a container using that image. You can map the port and mount a volume to persist the data directory.
-
-### Mapping the Port
-
-Use the -p flag to map the host port to the container port. In this case, we'll map the host port 3118 to the container port 3118:
-
-```bash
-docker run -d -p 3118:3118 nosdav
-```
-
-### Mounting a Volume for Data Storage
-
-To persist the data directory across container restarts or removals, you can use the --mount flag to create a volume and mount it to the container:
-
-```bash
-docker run -d -p 3118:3118 --mount type=bind,source=my-data,destination=/usr/src/app/data nosdav
-```
-
-Replace my-data with your preferred volume name.
-
-Now your server is up and running with Docker. You can access it on your host machine at http://localhost:3118.
-
-## Contributing
-
-Feel free to create a pull request if you would like to contribute or suggest improvements to the project. Please follow the existing style and add comments for any changes you make.
+All [JSS flags](https://github.com/JavaScriptSolidServer/JavaScriptSolidServer#usage) are passed through.
+
+## Defaults
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--port` | 3000 | Server port |
+| `--root` | ./data | Data directory |
+| `--nostr` | enabled | Nostr relay + NIP-98 auth |
+| `--conneg` | enabled | Content negotiation (Turtle/JSON-LD) |
+| `--notifications` | enabled | WebSocket live updates |
+| `--git` | enabled | Git HTTP backend |
+| `--public` | enabled | No auth required (override with `--idp`) |
+| `--mashlib-module` | nosdav/browser | Data browser UI |
 
 ## License
 
-- MIT
+AGPL-3.0 — Copyright (C) 2026 Melvin Carvalho
