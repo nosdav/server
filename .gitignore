@@ -109,3 +109,4 @@ config.json
 invites.json
 .tern-port
 SECURITY_AUDIT.md
+.claude/

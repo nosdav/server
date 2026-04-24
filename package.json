@@ -1,6 +1,6 @@
 {
   "name": "nosdav-server",
-  "version": "0.0.65",
+  "version": "0.0.66",
   "description": "Nostr-native Solid storage server — powered by JSS",
   "type": "module",
   "scripts": {
