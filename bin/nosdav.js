@@ -29,7 +29,7 @@ const defaults = {
   notifications: true,
   git: true,
   public: true,
-  'mashlib-module': 'https://nosdav.github.io/browser/mashlib.js'
+  'mashlib-module': 'https://nosdav.com/browser/mashlib.js'
 }
 
 // Parse user args
