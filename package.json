@@ -28,6 +28,6 @@
     "linked-data"
   ],
   "dependencies": {
-    "javascript-solid-server": "^0.0.154"
+    "javascript-solid-server": "^0.0.197"
   }
 }
