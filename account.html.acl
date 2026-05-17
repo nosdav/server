@@ -1,0 +1,23 @@
+{
+  "@context": {
+    "acl": "http://www.w3.org/ns/auth/acl#",
+    "foaf": "http://xmlns.com/foaf/0.1/"
+  },
+  "@graph": [
+    {
+      "@id": "#public",
+      "@type": "acl:Authorization",
+      "acl:agentClass": {
+        "@id": "foaf:Agent"
+      },
+      "acl:accessTo": {
+        "@id": "./account.html"
+      },
+      "acl:mode": [
+        {
+          "@id": "acl:Read"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+/* Intentionally empty. Styles live inside data-browser.js so the
+   browser is a single file. JSS auto-fetches this sibling URL
+   (mashlib/index.js:307); shipping an empty 200 keeps the console
+   warning-free until JSS makes the .css fetch optional. */

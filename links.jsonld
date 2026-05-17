@@ -1,0 +1,28 @@
+{
+  "@context": {
+    "schema": "http://schema.org/",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
+  },
+  "@id": "",
+  "@type": "schema:WebPage",
+  "rdfs:label": "Links — places to take your Solid pod next",
+  "rdfs:comment": "A few starting points. Click any URI to navigate.",
+  "schema:hasPart": [
+    {
+      "@id": "https://solid-apps.github.io/pilot/",
+      "rdfs:label": "Pilot — a minimal Solid data browser"
+    },
+    {
+      "@id": "https://solidproject.org/apps",
+      "rdfs:label": "Browse more Solid apps"
+    },
+    {
+      "@id": "https://github.com/JavaScriptSolidServer/nosdav",
+      "rdfs:label": "nosdav source"
+    },
+    {
+      "@id": "https://github.com/JavaScriptSolidServer/JavaScriptSolidServer",
+      "rdfs:label": "JavaScriptSolidServer (the substrate nosdav builds on)"
+    }
+  ]
+}

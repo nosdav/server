@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>nosdav docs</title>
+<style>
+body{font:14px/1.6 system-ui,-apple-system,sans-serif;color:#222;background:#f3eee5;max-width:780px;margin:2em auto;padding:0 1em}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:1.5em 2em}
+h1{margin:0 0 .25em;font-weight:500;font-size:1.8em}
+h2{margin:1.5em 0 .25em;font-weight:500;font-size:1.15em;color:#333;border-bottom:1px solid #eee;padding-bottom:.25em}
+h3{margin:1em 0 .25em;font-weight:500;font-size:1em;color:#444}
+p{margin:.5em 0}
+a{color:#0a66c2;text-decoration:none}
+a:hover{text-decoration:underline}
+code,kbd{font-family:"SFMono-Regular",Consolas,monospace;background:#f3eee5;padding:.1em .35em;border-radius:4px;font-size:.9em}
+pre{background:#f3eee5;border-radius:8px;padding:.8em 1em;overflow:auto;font-family:"SFMono-Regular",Consolas,monospace;font-size:.85em;line-height:1.5}
+pre code{background:none;padding:0;border-radius:0;font-size:1em}
+.tree{white-space:pre;line-height:1.55}
+.tree .label{color:#0a66c2}
+.tree .note{color:#888;font-family:system-ui,sans-serif}
+ul{padding-left:1.2em;margin:.3em 0}
+ul li{margin:.2em 0}
+.callout{background:#fff7e0;border:1px solid #f4d97a;color:#7a5c00;padding:.7em .9em;border-radius:8px;margin:1em 0;font-size:.95em}
+footer{margin-top:1.5em;padding-top:1em;border-top:1px solid #eee;color:#888;font-size:.85em;text-align:center}
+nav.toc{background:#f3eee5;border-radius:8px;padding:.6em 1em;margin:1em 0;font-size:.95em}
+nav.toc a{margin-right:1em}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>nosdav docs</h1>
+<p>What nosdav ships, where things live, and how to customize.</p>
+
+<nav class="toc">
+<a href="#what-nosdav-is">What it is</a>
+<a href="#layout">File layout</a>
+<a href="#idp">Where .idp lives</a>
+<a href="#customize">Customize the landing page</a>
+<a href="#auth-ladder">Auth ladder</a>
+<a href="#backup">Backup &amp; reset</a>
+<a href="#apps">Bundled apps</a>
+<a href="#git">Git remote</a>
+<a href="#links">Links</a>
+</nav>
+
+<h2 id="what-nosdav-is">What nosdav is</h2>
+<p>An opinionated thin wrapper around <a href="https://github.com/JavaScriptSolidServer/JavaScriptSolidServer">JavaScriptSolidServer (JSS)</a> aimed at first-time users. Single-user personal pods, default <code>me</code>/<code>me</code> credentials, localhost-only, batteries included.</p>
+<p>The wrapper handles: default flags, port hopping, browser auto-open, seeding a custom landing page and account dashboard, bundling Pilot as a self-hosted Solid app, and shipping a ~200-byte default data browser. JSS is the substrate — everything that's actually a pod, an IDP, an OIDC provider, comes from JSS.</p>
+
+<h2 id="layout">File layout (<code>pod-data/</code>)</h2>
+<p>nosdav creates <code>pod-data/</code> in the current working directory on first start (or wherever you pass via <code>--root</code>). Everything the pod is, including identities and signing keys, lives under that single tree.</p>
+
+<pre class="tree"><span class="label">pod-data/</span>             <span class="note">your pod root</span>
+├── <span class="label">index.html</span>        <span class="note">welcome page — nosdav overwrites every start</span>
+├── <span class="label">index.html.acl</span>    <span class="note">public-read for the landing page (JSS-managed)</span>
+├── <span class="label">signin.html</span>       <span class="note">nosdav's sign-in app — overwritten every start</span>
+├── <span class="label">signin.html.acl</span>   <span class="note">public-read</span>
+├── <span class="label">account.html</span>      <span class="note">post-sign-in dashboard — overwritten every start</span>
+├── <span class="label">account.html.acl</span>  <span class="note">public-read</span>
+├── <span class="label">docs.html</span>         <span class="note">this page — overwritten every start</span>
+├── <span class="label">docs.html.acl</span>     <span class="note">public-read</span>
+├── <span class="label">profile/</span>
+│   └── <span class="label">card.jsonld</span>   <span class="note">your WebID profile (JSS-seeded)</span>
+├── <span class="label">public/</span>           <span class="note">public-read container</span>
+│   ├── <span class="label">links.jsonld</span>  <span class="note">starter list of Solid apps (nosdav-seeded, skip-if-exists)</span>
+│   └── <span class="label">apps/pilot/</span>   <span class="note">self-hosted Pilot (nosdav-bundled, skip-if-exists)</span>
+├── <span class="label">private/</span>          <span class="note">owner-only container</span>
+├── <span class="label">inbox/</span>            <span class="note">LDN inbox</span>
+├── <span class="label">settings/</span>         <span class="note">prefs + type indexes (JSS-seeded)</span>
+├── <span class="label">.acl</span>              <span class="note">root container ACL — owner read/write, no public default</span>
+├── <span class="label">.idp/</span>             <span class="note">JSS internal identity storage (see below)</span>
+└── <span class="label">.token-secret</span>     <span class="note">JWT signing secret (auto-generated, mode 0600)</span></pre>
+
+<div class="callout">
+<strong>Overwrite warning.</strong> <code>index.html</code>, <code>signin.html</code>, <code>account.html</code>, and <code>docs.html</code> are owned by nosdav and overwritten on every <em>start</em>. Edits won't survive a restart. To customize, fork nosdav or run JSS directly instead. The <code>public/links.jsonld</code> and <code>public/apps/pilot/</code> bundles are <em>skip-if-exists</em>, so user edits there <em>do</em> survive.
+</div>
+
+<h2 id="idp">Where the IDP data lives</h2>
+<p>Everything identity-related is under <code>pod-data/.idp/</code>:</p>
+
+<pre class="tree"><span class="label">.idp/</span>
+├── <span class="label">accounts/</span>
+│   ├── <span class="label">&lt;uuid&gt;.json</span>             <span class="note">account record — username, WebID, bcrypt(password)</span>
+│   ├── <span class="label">_email_index.json</span>
+│   ├── <span class="label">_username_index.json</span>
+│   └── <span class="label">_webid_index.json</span>
+└── <span class="label">keys/</span>
+    └── <span class="label">jwks.json</span>                <span class="note">OIDC signing keys for issued tokens</span></pre>
+
+<p>The account record contains a bcrypt hash of the password — not the plaintext. The signing keys are sensitive (anyone with these can mint valid tokens against your pod). JSS manages file modes on these; nosdav doesn't touch them.</p>
+
+<h2 id="customize">Customize the landing page</h2>
+<p>The default landing page (<code>pod-data/index.html</code>) is owned by nosdav. Edits to it are overwritten on the next start. To genuinely customize, the options are, in increasing order of effort:</p>
+<ul>
+<li>Fork nosdav (clone the repo, edit <code>welcome.html</code>, run <code>./index.js</code> from the fork). All overwrites use <em>your</em> templates.</li>
+<li>Run JSS directly with your own <code>pod-data/index.html</code> pre-seeded. JSS does skip-if-exists for its own seed, so your file wins. You lose nosdav's account dashboard / signin app / data browser, but you can copy any of them out of the npm package and adapt.</li>
+<li>Track <a href="https://github.com/JavaScriptSolidServer/JavaScriptSolidServer/issues/459">JSS#459</a> for a future <code>--landing-page &lt;file&gt;</code> option that would make this cleaner.</li>
+</ul>
+
+<h2 id="auth-ladder">Auth ladder</h2>
+<p>nosdav ships you onto rung 1 (default <code>me</code>/<code>me</code>) and makes climbing visible. The dashboard at <code>/account.html</code> exposes a Change password form (rung 2). Passkey support (rung 3) is on the roadmap. See <a href="https://github.com/nosdav/server/issues/6">nosdav#6</a> for the full ladder framing.</p>
+<p>To set a custom initial password without going through the UI:</p>
+<pre>JSS_SINGLE_USER_PASSWORD='your-password' npx nosdav</pre>
+
+<h2 id="backup">Backup &amp; reset</h2>
+<p>Your entire pod — content, identity, signing keys — is one directory.</p>
+
+<h3>Backup</h3>
+<pre>tar -czf my-pod.tar.gz pod-data/</pre>
+<p>Restore by extracting the tarball back into a pod-data directory and pointing <code>npx nosdav --root /path/to/pod-data</code> at it.</p>
+
+<h3>Reset / "delete account"</h3>
+<p>JSS disables the <code>/idp/account/delete</code> endpoint in single-user mode (the account <em>is</em> the pod). To start completely fresh:</p>
+<pre>rm -rf pod-data
+npx nosdav</pre>
+<p>A new <code>me</code>/<code>me</code> account is seeded on next start.</p>
+
+<h2 id="apps">Bundled Solid apps</h2>
+<p>nosdav bundles <a href="https://github.com/solid-apps/pilot">Pilot</a> at <code>/public/apps/pilot/</code>. It's served from your own pod, so same-origin sign-in works even on strict browsers (Brave with shields up).</p>
+<p>The bundle is copied skip-if-exists, so you can pin a specific Pilot version by editing the files locally and they'll survive nosdav upgrades. Delete <code>pod-data/public/apps/pilot/</code> and restart to re-seed from the current nosdav's bundled copy.</p>
+
+<h2 id="git">Git remote (your pod is a git server)</h2>
+<p>nosdav enables <a href="https://github.com/JavaScriptSolidServer/JavaScriptSolidServer">JSS</a>'s git HTTP backend by default. Any pod path you have ACL Read on is git-cloneable; any path you have ACL Write on is git-pushable. Fresh paths auto-initialize on first push (JSS 0.0.195+).</p>
+
+<h3>Clone a public path</h3>
+<pre>git clone http://localhost:5444/public/apps/pilot ./pilot</pre>
+
+<h3>Push to a new path (auto-creates the bare repo)</h3>
+<pre>git clone https://github.com/solid-apps/penny.git
+cd penny
+git remote add pod http://localhost:5444/public/apps/penny
+git push pod main</pre>
+<p>Note: <code>git push</code> against a Solid pod needs the same DPoP-bound auth as any other Solid write. Easiest workaround today is to set an <code>Authorization</code> header via <code>git -c http.extraHeader=...</code> with a token obtained from <code>/signin.html</code>. Cleaner ergonomics are a known gap.</p>
+
+<p>To opt out: <code>npx nosdav --no-git</code>.</p>
+
+<h2 id="links">Links</h2>
+<ul>
+<li><a href="https://github.com/nosdav/server">nosdav source</a> — issues, PRs, releases</li>
+<li><a href="https://github.com/JavaScriptSolidServer/JavaScriptSolidServer">JavaScriptSolidServer (JSS)</a> — the substrate</li>
+<li><a href="https://github.com/JavaScriptSolidServer/solid-oidc">solid-oidc</a> — the zero-dep OIDC client nosdav's signin/account pages use</li>
+<li><a href="https://solidproject.org">Solid project</a></li>
+<li><a href="https://solidproject.org/TR/protocol">Solid spec</a></li>
+</ul>
+
+<footer>Powered by <a href="https://github.com/nosdav/server">nosdav</a> · AGPL-3.0-only</footer>
+</div>
+</body>
+</html>
