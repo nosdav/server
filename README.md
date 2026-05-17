@@ -7,7 +7,7 @@ NosDAV gives you a personal Solid pod with a Nostr identity baked in. One comman
 ## Try in 60 seconds
 
 ```bash
-npx nosdav
+npx nosdav-server
 ```
 
 A Schnorr secp256k1 owner keypair is generated on first start, stored at `<pod>/private/privkey.jsonld`, and published in your WebID profile as a Multikey verification method. Your pod becomes its own DID resolver via `/.well-known/did/nostr/<pubkey>`. The same pod also speaks normal Solid — WebID, ACL, OIDC, LDP, content negotiation, WebSocket notifications, git push/clone — all of JSS's features unchanged.
@@ -39,7 +39,7 @@ NosDAV is the **Nostr-default** wrapper. [jspod](https://github.com/JavaScriptSo
 | **Auth** | on by default | on by default |
 | **Same underlying server** | JSS | JSS |
 
-If you want Nostr identity on your pod from day one, run `npx nosdav`. If you want a Solid-only personal pod, run `npx jspod`. The data on disk is portable between them.
+If you want Nostr identity on your pod from day one, run `npx nosdav-server`. If you want a Solid-only personal pod, run `npx jspod`. The data on disk is portable between them.
 
 ## What's installed
 
