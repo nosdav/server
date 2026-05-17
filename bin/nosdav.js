@@ -262,7 +262,12 @@ const options = {
   // profile as a Multikey verificationMethod, and serves the
   // /.well-known/did/nostr/<pubkey> resolution endpoint. Opt out with
   // --no-provision-keys.
-  provisionKeys: true
+  provisionKeys: true,
+  // On by default — the other half of "Nostr-native". JSS exposes a
+  // Nostr relay at <pod>/relay with NIP-98 auth. Pairs with the
+  // provisioned owner key so the pod has a Nostr identity *and*
+  // speaks Nostr. Opt out with --no-nostr.
+  nostr: true
 };
 
 // Auth-ladder rung-1 credentials. See issue #6: nosdav ships a deliberately
@@ -343,6 +348,10 @@ for (let i = 0; i < args.length; i++) {
     options.provisionKeys = true;
   } else if (arg === '--no-provision-keys') {
     options.provisionKeys = false;
+  } else if (arg === '--nostr') {
+    options.nostr = true;
+  } else if (arg === '--no-nostr') {
+    options.nostr = false;
   } else if (arg === '--version' || arg === '-v') {
     console.log(`nosdav v${pkg.version}`);
     process.exit(0);
@@ -365,6 +374,7 @@ for (let i = 0; i < args.length; i++) {
     console.log(chalk.green('  --no-open') + chalk.dim('              Do not open the browser automatically'));
     console.log(chalk.green('  --no-git') + chalk.dim('               Disable JSS\'s git HTTP backend (it is on by default)'));
     console.log(chalk.green('  --no-provision-keys') + chalk.dim('     Skip auto-generating a Nostr owner keypair (default: on)'));
+    console.log(chalk.green('  --no-nostr') + chalk.dim('              Disable the Nostr relay at <pod>/relay (default: on)'));
     console.log(chalk.green('  -v, --version') + chalk.dim('           Show nosdav version'));
     console.log(chalk.green('  --help') + chalk.dim('                  Show this help message\n'));
     console.log(chalk.white('Examples:'));
@@ -624,6 +634,10 @@ jssArgs.push(options.git ? '--git' : '--no-git');
 // verificationMethod. Pairs with the existing /.well-known/did/nostr/
 // resolution endpoint so the pod becomes its own DID resolver.
 if (options.provisionKeys) jssArgs.push('--provision-keys');
+
+// JSS's --nostr enables a Nostr relay at <pod>/relay with NIP-98 auth.
+// On by default for nosdav's Nostr-native positioning.
+if (options.nostr) jssArgs.push('--nostr');
 
 // Start JSS with enhanced PATH to find the binary
 const jss = spawn('jss', jssArgs, {

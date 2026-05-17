@@ -23,6 +23,7 @@ A Schnorr secp256k1 owner keypair is generated on first start, stored at `<pod>/
       --no-open           Don't auto-open the browser on start
       --no-git            Disable JSS's git HTTP backend
       --no-provision-keys Don't auto-generate a Nostr keypair (default: on)
+      --no-nostr          Disable the Nostr relay at <pod>/relay (default: on)
   -v, --version           Print nosdav version
       --help              Show help
 ```
