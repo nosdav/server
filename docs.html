@@ -101,19 +101,19 @@ nav.toc a{margin-right:1em}
 <h2 id="auth-ladder">Auth ladder</h2>
 <p>nosdav ships you onto rung 1 (default <code>me</code>/<code>me</code>) and makes climbing visible. The dashboard at <code>/account.html</code> exposes a Change password form (rung 2). Passkey support (rung 3) is on the roadmap. See <a href="https://github.com/nosdav/server/issues/6">nosdav#6</a> for the full ladder framing.</p>
 <p>To set a custom initial password without going through the UI:</p>
-<pre>JSS_SINGLE_USER_PASSWORD='your-password' npx nosdav</pre>
+<pre>JSS_SINGLE_USER_PASSWORD='your-password' npx nosdav-server</pre>
 
 <h2 id="backup">Backup &amp; reset</h2>
 <p>Your entire pod — content, identity, signing keys — is one directory.</p>
 
 <h3>Backup</h3>
 <pre>tar -czf my-pod.tar.gz pod-data/</pre>
-<p>Restore by extracting the tarball back into a pod-data directory and pointing <code>npx nosdav --root /path/to/pod-data</code> at it.</p>
+<p>Restore by extracting the tarball back into a pod-data directory and pointing <code>npx nosdav-server --root /path/to/pod-data</code> at it.</p>
 
 <h3>Reset / "delete account"</h3>
 <p>JSS disables the <code>/idp/account/delete</code> endpoint in single-user mode (the account <em>is</em> the pod). To start completely fresh:</p>
 <pre>rm -rf pod-data
-npx nosdav</pre>
+npx nosdav-server</pre>
 <p>A new <code>me</code>/<code>me</code> account is seeded on next start.</p>
 
 <h2 id="apps">Bundled Solid apps</h2>
@@ -133,7 +133,7 @@ git remote add pod http://localhost:5444/public/apps/penny
 git push pod main</pre>
 <p>Note: <code>git push</code> against a Solid pod needs the same DPoP-bound auth as any other Solid write. Easiest workaround today is to set an <code>Authorization</code> header via <code>git -c http.extraHeader=...</code> with a token obtained from <code>/signin.html</code>. Cleaner ergonomics are a known gap.</p>
 
-<p>To opt out: <code>npx nosdav --no-git</code>.</p>
+<p>To opt out: <code>npx nosdav-server --no-git</code>.</p>
 
 <h2 id="links">Links</h2>
 <ul>
