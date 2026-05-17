@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your NosDAV pod</title>
+<style>
+body{font:14px/1.6 system-ui,-apple-system,sans-serif;color:#222;background:#f3eee5;max-width:680px;margin:2em auto;padding:0 1em}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:1.5em 2em}
+h1{margin:0 0 .25em;font-weight:500;font-size:1.8em}
+.lede{color:#555;margin:0 0 1.5em}
+a{color:#0a66c2;text-decoration:none}
+a:hover{text-decoration:underline}
+.creds{background:#f3eee5;padding:.8em 1em;border-radius:8px;margin:1em 0;font-family:"SFMono-Regular",Consolas,monospace}
+.creds .label{font-family:system-ui,sans-serif;color:#555;margin-right:.5em}
+.actions{margin:0 0 1em;display:flex;gap:.5em;flex-wrap:wrap}
+.btn{display:inline-block;padding:.55em 1.2em;border-radius:6px;text-decoration:none;font-size:.95em;border:1px solid transparent}
+.btn:hover{text-decoration:none}
+.btn-primary{background:#0a66c2;color:#fff}
+.btn-primary:hover{background:#084e96}
+.btn-secondary{background:#fff;color:#222;border-color:#ddd}
+.btn-secondary:hover{background:#f0efeb}
+[hidden]{display:none!important}
+.signed-in-note{background:#e8f5e9;color:#1b5e20;padding:.6em 1em;border-radius:8px;margin:1em 0;font-size:.95em}
+.dirs{list-style:none;padding:0;margin:1em 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.5em}
+.dirs li a{display:block;padding:.7em .9em;background:#f3eee5;border-radius:8px;color:#222}
+.dirs li a:hover{background:#ebe5d8}
+.dirs li a.locked{opacity:.55;cursor:default}
+.dirs li a.locked:hover{background:#f3eee5}
+footer{margin-top:1.5em;padding-top:1em;border-top:1px solid #eee;color:#888;font-size:.85em;text-align:center}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Your NosDAV pod</h1>
+<p class="lede">Running at <a id="server-url" href="./">this server</a>.</p>
+
+<div class="actions">
+<a href="./signin.html" class="btn btn-primary" data-cond="login" hidden>Sign in</a>
+<a href="./account.html" class="btn btn-secondary">Account</a>
+<a href="./idp/register" class="btn btn-secondary" data-cond="register" hidden>Sign up</a>
+</div>
+
+<div class="creds" id="creds-block">
+<span class="label">Default sign-in:</span> me <span class="label">/</span> me
+</div>
+
+<p id="signed-in-note" class="signed-in-note" hidden>
+  You're signed in as <strong id="signed-in-webid">me</strong>. Visit your <a href="./account.html">account</a> to manage password, sign out, etc.
+</p>
+
+<p id="explore-hint">Then point a Solid app (e.g. <a href="https://solid-apps.github.io/pilot/">Pilot</a>) at this server and sign in. Or explore your pod directly:</p>
+
+<ul class="dirs">
+<li><a href="./profile/">📇 /profile/</a></li>
+<li><a href="./public/">🌐 /public/</a></li>
+<li><a href="./private/">🔒 /private/</a></li>
+<li><a href="./inbox/">📥 /inbox/</a></li>
+<li><a href="./settings/">⚙️ /settings/</a></li>
+</ul>
+
+<h2 style="margin:1.5em 0 .25em;font-weight:500;font-size:1.05em;color:#444">Apps</h2>
+<ul class="dirs">
+<li><a href="./public/apps/pilot/">✈️ Pilot — Solid data browser</a></li>
+</ul>
+
+<footer><a href="./docs.html">Docs</a> · Powered by <a href="https://github.com/nosdav/server">NosDAV</a></footer>
+</div>
+
+<script type="module">
+import Session from 'https://cdn.jsdelivr.net/npm/solid-oidc@0.0.8/solid-oidc.js';
+
+// Render the server URL the visitor actually used
+(function () {
+  const el = document.getElementById('server-url');
+  if (!el) return;
+  el.textContent = el.href = new URL('./', window.location.href).href;
+})();
+
+const credsBlock = document.getElementById('creds-block');
+const exploreHint = document.getElementById('explore-hint');
+const signedInNote = document.getElementById('signed-in-note');
+const signinBtn = document.querySelector('[data-cond="login"]');
+const signupBtn = document.querySelector('[data-cond="register"]');
+
+// Try to restore a prior session. The same "Missing refresh data"
+// catch as on the other pages: a clean first visit throws, we
+// treat that as "not signed in" and fall through to the unauth UI.
+let session = null;
+let active = false;
+try {
+  session = new Session();
+  await session.restore();
+  active = session.isActive;
+} catch {
+  active = false;
+}
+
+if (active && session) {
+  // Signed-in: hide the sign-in CTAs and the rung-1 hint; show a
+  // small note about where to manage the session.
+  if (signinBtn) signinBtn.hidden = true;
+  if (signupBtn) signupBtn.hidden = true;
+  if (credsBlock) credsBlock.hidden = true;
+  if (exploreHint) exploreHint.hidden = true;
+  if (signedInNote) {
+    const w = session.webId || 'me';
+    document.getElementById('signed-in-webid').textContent = w;
+    signedInNote.hidden = false;
+  }
+
+  // Auth-aware tile probes — use session.authFetch so private dirs
+  // unlock when we actually have access.
+  document.querySelectorAll('.dirs a').forEach((a) => {
+    const href = a.getAttribute('href');
+    session.authFetch(href, { method: 'HEAD', cache: 'no-store' }).then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        a.classList.add('locked');
+        a.title = 'No access to ' + href;
+        a.setAttribute('href', './account.html');
+      }
+    }).catch(() => {});
+  });
+} else {
+  // Signed-out: original behaviour.
+  // HEAD-adaptive Sign in / Sign up — same contract as JSS's default.
+  fetch('./idp/register', { method: 'HEAD', cache: 'no-store' }).then((res) => {
+    if (res.status === 200) {
+      if (signupBtn) signupBtn.hidden = false;
+      if (signinBtn) signinBtn.hidden = false;
+    } else if (res.status === 403) {
+      if (signinBtn) signinBtn.hidden = false;
+    }
+  }).catch(() => {});
+
+  // Plain fetch tile probes — auth-gated tiles 401, get dimmed and
+  // routed to the sign-in app.
+  document.querySelectorAll('.dirs a').forEach((a) => {
+    const href = a.getAttribute('href');
+    fetch(href, { method: 'HEAD', cache: 'no-store' }).then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        a.classList.add('locked');
+        a.title = 'Sign in to view ' + href;
+        a.setAttribute('href', './signin.html');
+      }
+    }).catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

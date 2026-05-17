@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your account — NosDAV</title>
+<style>
+body{font:14px/1.6 system-ui,-apple-system,sans-serif;color:#222;background:#f3eee5;max-width:680px;margin:2em auto;padding:0 1em}
+.card{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:1.5em 2em}
+h1{margin:0 0 .5em;font-weight:500;font-size:1.8em}
+h2{margin:1.5em 0 .25em;font-weight:500;font-size:1.05em;color:#444}
+.lede{color:#555;margin:0 0 1em}
+.kv{background:#f3eee5;padding:.55em .9em;border-radius:8px;margin:.3em 0;font-family:"SFMono-Regular",Consolas,monospace;font-size:.9em;word-break:break-all}
+.kv .label{font-family:system-ui,sans-serif;color:#555;display:inline-block;margin-right:.5em;font-size:.85em}
+a{color:#0a66c2;text-decoration:none}
+a:hover{text-decoration:underline}
+.btn{display:inline-block;padding:.55em 1.2em;border-radius:6px;text-decoration:none;font-size:.95em;border:1px solid transparent;cursor:pointer;background:#0a66c2;color:#fff;font-family:inherit}
+.btn:hover{background:#084e96;text-decoration:none}
+.btn-secondary{background:#fff;color:#222;border-color:#ddd}
+.btn-secondary:hover{background:#f0efeb}
+.btn-danger{background:#fff;color:#a00;border-color:#fcc}
+.btn-danger:hover{background:#fff0f0}
+.actions{margin:.5em 0 0;display:flex;gap:.5em;flex-wrap:wrap}
+[hidden]{display:none!important}
+.error{background:#fff0f0;color:#a00;padding:.8em 1em;border-radius:8px;margin:1em 0;display:none;font-family:"SFMono-Regular",Consolas,monospace;font-size:.9em;word-break:break-word}
+.error.show{display:block}
+footer{margin-top:1.5em;padding-top:1em;border-top:1px solid #eee;color:#888;font-size:.85em;text-align:center}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Your account</h1>
+<p class="lede" id="status">Loading session…</p>
+
+<div id="signed-in" hidden>
+  <h2>WebID</h2>
+  <div class="kv"><a id="webid-link" href="#"><span id="webid"></span></a></div>
+
+  <h2>Pod</h2>
+  <div class="kv"><span class="label">URL:</span><span id="pod-url"></span></div>
+
+  <h2>Explore</h2>
+  <div class="actions">
+    <a class="btn btn-secondary" href="./public/">/public/</a>
+    <a class="btn btn-secondary" id="profile-link" href="#">profile</a>
+    <a class="btn btn-secondary" href="./private/">/private/</a>
+    <a class="btn btn-secondary" href="./inbox/">/inbox/</a>
+    <a class="btn btn-secondary" href="./settings/">/settings/</a>
+  </div>
+
+  <h2>Apps</h2>
+  <div class="actions">
+    <a class="btn btn-secondary" href="./public/apps/pilot/">✈️ Pilot</a>
+  </div>
+
+  <h2>Password</h2>
+  <div id="pw-default-warning" hidden style="background:#fff0f0;border:1px solid #f4a4a4;color:#a00;padding:.7em .9em;border-radius:8px;margin:.5em 0;font-size:.95em">
+    <strong>You're using the default password.</strong> Change it below to claim your pod.
+  </div>
+  <p id="pw-hint" style="margin:.25em 0 .5em;color:#666;font-size:.9em">Climb from rung 1 (default <code>me</code>) to rung 2 (your password).</p>
+  <button class="btn btn-secondary" id="pw-toggle" type="button">Change password</button>
+  <form id="pw-form" hidden style="margin:.75em 0 0;display:grid;gap:.5em;max-width:360px">
+    <!-- Hidden username for password managers: present in the form but
+         not rendered. Standard pattern used by GitHub, Google, etc.
+         Browsers use this to associate the saved password with an
+         account name in the credential store. -->
+    <input type="text" id="pw-username" name="username" autocomplete="username" value="me" hidden>
+    <label style="display:grid;gap:.2em;font-size:.9em;color:#555">Current password
+      <input type="password" id="pw-current" autocomplete="current-password" required style="padding:.5em .8em;border:1px solid #ddd;border-radius:6px;font:inherit">
+    </label>
+    <label style="display:grid;gap:.2em;font-size:.9em;color:#555">New password
+      <input type="password" id="pw-new" autocomplete="new-password" required minlength="4" style="padding:.5em .8em;border:1px solid #ddd;border-radius:6px;font:inherit">
+    </label>
+    <label style="display:grid;gap:.2em;font-size:.9em;color:#555">Confirm new password
+      <input type="password" id="pw-confirm" autocomplete="new-password" required style="padding:.5em .8em;border:1px solid #ddd;border-radius:6px;font:inherit">
+    </label>
+    <div class="actions">
+      <button class="btn" type="submit" id="pw-submit">Update password</button>
+      <button class="btn btn-secondary" type="button" id="pw-cancel">Cancel</button>
+    </div>
+    <div id="pw-msg" style="display:none;padding:.6em .9em;border-radius:8px;font-size:.9em"></div>
+  </form>
+
+  <h2>Session</h2>
+  <div class="actions">
+    <button class="btn btn-danger" id="signout-btn" type="button">Sign out</button>
+    <a class="btn btn-secondary" href="./">Back to pod</a>
+  </div>
+</div>
+
+<div id="signed-out" hidden>
+  <p>You're not signed in to this pod.</p>
+  <div class="actions">
+    <a class="btn" href="./signin.html">Sign in</a>
+    <a class="btn btn-secondary" href="./">Back to pod</a>
+  </div>
+</div>
+
+<div class="error" id="error"></div>
+
+<footer><a href="./docs.html">Docs</a> · Powered by <a href="https://github.com/nosdav/server">NosDAV</a> · <a href="https://github.com/JavaScriptSolidServer/solid-oidc">solid-oidc</a></footer>
+</div>
+<script type="module">
+import Session from 'https://cdn.jsdelivr.net/npm/solid-oidc@0.0.8/solid-oidc.js';
+
+const statusEl = document.getElementById('status');
+const errorEl = document.getElementById('error');
+const signedInEl = document.getElementById('signed-in');
+const signedOutEl = document.getElementById('signed-out');
+
+function fail(msg) {
+  statusEl.style.display = 'none';
+  errorEl.textContent = msg;
+  errorEl.classList.add('show');
+}
+
+try {
+  const session = new Session();
+  let active = false;
+  try {
+    await session.restore();
+    active = session.isActive;
+  } catch {
+    active = false;
+  }
+
+  statusEl.style.display = 'none';
+
+  if (active) {
+    const podUrl = new URL('./', window.location.href).href;
+    const webid = session.webId || '(unknown)';
+    document.getElementById('webid').textContent = webid;
+    document.getElementById('webid-link').href = webid;
+    document.getElementById('pod-url').textContent = podUrl;
+    // Profile link strips the fragment (WebID typically ends with #me)
+    document.getElementById('profile-link').href = webid.replace(/#.*/, '');
+    signedInEl.hidden = false;
+
+    // Background probe: is the password still the default rung-1 'me'?
+    // We send PUT /idp/credentials with {currentPassword:'me',newPassword:'me'}
+    // — JSS returns 204 when the current password matches (no-op re-hash),
+    // 401 when it doesn't. Show the climb warning only on 204.
+    // The probe runs fire-and-forget so the rest of the dashboard renders
+    // immediately; the warning fades in once we know.
+    (async () => {
+      try {
+        const res = await session.authFetch(new URL('./idp/credentials', window.location.href).href, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword: 'me', newPassword: 'me' })
+        });
+        if (res.ok) {
+          document.getElementById('pw-default-warning').hidden = false;
+        }
+      } catch {
+        // Best-effort: rate-limited or transient. No warning shown.
+      }
+    })();
+
+    document.getElementById('signout-btn').addEventListener('click', async () => {
+      try {
+        await session.logout();
+        window.location.href = './';
+      } catch (e) {
+        fail('Sign-out failed: ' + (e.message || String(e)));
+      }
+    });
+
+    // Change-password flow. POSTs to JSS's PUT /idp/credentials with
+    // {currentPassword, newPassword}. The endpoint requires the
+    // session's DPoP-bound bearer token plus re-proof of the current
+    // password — session.authFetch handles the auth headers, the form
+    // collects the re-auth proof.
+    const pwToggle = document.getElementById('pw-toggle');
+    const pwForm = document.getElementById('pw-form');
+    const pwCancel = document.getElementById('pw-cancel');
+    const pwSubmit = document.getElementById('pw-submit');
+    const pwMsg = document.getElementById('pw-msg');
+    const pwCurrent = document.getElementById('pw-current');
+    const pwNew = document.getElementById('pw-new');
+    const pwConfirm = document.getElementById('pw-confirm');
+
+    function pwStatus(text, isError) {
+      pwMsg.textContent = text;
+      pwMsg.style.display = 'block';
+      pwMsg.style.background = isError ? '#fff0f0' : '#e8f5e9';
+      pwMsg.style.color = isError ? '#a00' : '#1b5e20';
+    }
+    function pwReset() {
+      pwForm.reset();
+      pwMsg.style.display = 'none';
+    }
+
+    pwToggle.addEventListener('click', () => {
+      pwForm.hidden = false;
+      pwToggle.hidden = true;
+      pwCurrent.focus();
+    });
+    pwCancel.addEventListener('click', () => {
+      pwForm.hidden = true;
+      pwToggle.hidden = false;
+      pwReset();
+    });
+    pwForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      if (pwNew.value !== pwConfirm.value) {
+        pwStatus('New password and confirmation do not match.', true);
+        return;
+      }
+      pwSubmit.disabled = true;
+      pwStatus('Updating…');
+      try {
+        const res = await session.authFetch(new URL('./idp/credentials', window.location.href).href, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword: pwCurrent.value, newPassword: pwNew.value })
+        });
+        if (!res.ok) {
+          let detail = '';
+          try {
+            const j = await res.json();
+            detail = j.error_description || j.error || '';
+          } catch {}
+          throw new Error('HTTP ' + res.status + (detail ? ' — ' + detail : ''));
+        }
+        pwStatus('Password updated. You\'re on rung 2 now.');
+        pwCurrent.value = pwNew.value = pwConfirm.value = '';
+        // Hide the default-password warning if it was showing.
+        document.getElementById('pw-default-warning').hidden = true;
+      } catch (e) {
+        pwStatus('Change failed: ' + (e.message || String(e)), true);
+      } finally {
+        pwSubmit.disabled = false;
+      }
+    });
+  } else {
+    signedOutEl.hidden = false;
+  }
+} catch (e) {
+  fail(e && e.message ? e.message : String(e));
+}
+</script>
+</body>
+</html>
