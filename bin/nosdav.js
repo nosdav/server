@@ -256,15 +256,12 @@ const options = {
   auth: true,
   open: true,
   git: true,
-  // 'folder' (default) = friendlier container listing (table + breadcrumb)
-  // that falls back to JSON-LD when the resource isn't a container.
-  // 'json' = minimal JSON-LD pretty-print (the developer view).
-  browser: 'folder',
-  // Off by default — keeps nosdav Solid-pure. Opt in here when you want
-  // a Nostr identity on the pod (JSS generates a Schnorr secp256k1
-  // keypair on first start, stores it at <pod>/private/privkey.jsonld,
-  // and publishes the pubkey in the WebID profile). The nosdav-server
-  // wrapper will flip this on by default.
+  // On by default — the Nostr-native opinion. JSS provisions a Schnorr
+  // secp256k1 owner keypair on first start, writes it to
+  // <pod>/private/privkey.jsonld, publishes the pubkey in the WebID
+  // profile as a Multikey verificationMethod, and serves the
+  // /.well-known/did/nostr/<pubkey> resolution endpoint. Opt out with
+  // --no-provision-keys.
   provisionKeys: true
 };
 
@@ -346,14 +343,6 @@ for (let i = 0; i < args.length; i++) {
     options.provisionKeys = true;
   } else if (arg === '--no-provision-keys') {
     options.provisionKeys = false;
-  } else if (arg === '--browser') {
-    const raw = requireValue(arg, args[++i]);
-    if (raw !== 'json' && raw !== 'folder') {
-      console.error(chalk.red(`✗ Invalid --browser value: ${raw}`));
-      console.error(chalk.dim('Must be one of: json, folder'));
-      process.exit(1);
-    }
-    options.browser = raw;
   } else if (arg === '--version' || arg === '-v') {
     console.log(`nosdav v${pkg.version}`);
     process.exit(0);
@@ -375,8 +364,7 @@ for (let i = 0; i < args.length; i++) {
     console.log(chalk.green('  --no-auth') + chalk.dim('              Disable authentication'));
     console.log(chalk.green('  --no-open') + chalk.dim('              Do not open the browser automatically'));
     console.log(chalk.green('  --no-git') + chalk.dim('               Disable JSS\'s git HTTP backend (it is on by default)'));
-    console.log(chalk.green('  --browser ') + chalk.yellow('<folder|json>') + chalk.dim('  Data browser style (default: folder)'));
-    console.log(chalk.green('  --provision-keys') + chalk.dim('       Generate a Nostr-compatible owner keypair on first start'));
+    console.log(chalk.green('  --no-provision-keys') + chalk.dim('     Skip auto-generating a Nostr owner keypair (default: on)'));
     console.log(chalk.green('  -v, --version') + chalk.dim('           Show nosdav version'));
     console.log(chalk.green('  --help') + chalk.dim('                  Show this help message\n'));
     console.log(chalk.white('Examples:'));
@@ -577,15 +565,11 @@ console.log(chalk.cyan('   └─ ') + chalk.white('WebID:      ') + chalk.blue.
 console.log('\n' + chalk.dim('Press ') + chalk.bold.red('Ctrl+C') + chalk.dim(' to stop the server\n'));
 console.log(chalk.yellow('⏳ Initializing server components...\n'));
 
-// Point JSS at nosdav's minimal data browser instead of the full mashlib
-// bundle. The page-is-the-data philosophy: JSS already embeds the
-// resource as JSON-LD in #dataisland, so the "browser" only needs to
-// paint that data with clickable URIs (~200 bytes of JS + ~200 bytes
-// of CSS, both shipped in this npm package). Version-pinned jsdelivr
-// URL is immutable per version, so a published nosdav release will
-// always load the matching browser code.
-const browserFile = options.browser === 'folder' ? 'data-browser-folder.js' : 'data-browser.js';
-const dataBrowserUrl = `https://cdn.jsdelivr.net/npm/nosdav-server@${pkg.version}/${browserFile}`;
+// Point JSS at the canonical NosDAV data browser. nosdav.com/browser is
+// a full mashlib bundle (tabbed Folder/Data/Source/Sharing UI, CRUD,
+// WAC sharing pane) — much richer than a minimal pretty-printer. Same
+// surface across every nosdav release; no per-version pinning needed.
+const dataBrowserUrl = 'https://nosdav.com/browser/mashlib.js';
 
 // Build jss arguments
 const jssArgs = [

@@ -16,10 +16,6 @@
     "account.html.acl",
     "docs.html",
     "docs.html.acl",
-    "data-browser.js",
-    "data-browser.css",
-    "data-browser-folder.js",
-    "data-browser-folder.css",
     "links.jsonld"
   ],
   "scripts": {

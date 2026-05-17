@@ -22,7 +22,6 @@ A Schnorr secp256k1 owner keypair is generated on first start, stored at `<pod>/
       --no-auth           Open pod, no IDP, no ACL (demos / dev only)
       --no-open           Don't auto-open the browser on start
       --no-git            Disable JSS's git HTTP backend
-      --browser <style>   Data browser: folder (default) or json
       --no-provision-keys Don't auto-generate a Nostr keypair (default: on)
   -v, --version           Print nosdav version
       --help              Show help
