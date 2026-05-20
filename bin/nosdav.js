@@ -336,7 +336,7 @@ for (let i = 0; i < args.length; i++) {
     options.host = rawHost;
   } else if (arg === '--root' || arg === '-r') {
     options.root = requireValue(arg, args[++i]);
-  } else if (arg === '--multiuser') {
+  } else if (arg === '--multi-user' || arg === '--multiuser') {
     options.multiuser = true;
   } else if (arg === '--no-auth') {
     options.auth = false;
@@ -373,7 +373,7 @@ for (let i = 0; i < args.length; i++) {
     console.log(chalk.green('  -p, --port ') + chalk.yellow('<number>') + chalk.dim('     Port to listen on (default: 5544)'));
     console.log(chalk.green('  -h, --host ') + chalk.yellow('<address>') + chalk.dim('    Host to bind to (default: localhost)'));
     console.log(chalk.green('  -r, --root ') + chalk.yellow('<path>') + chalk.dim('       Data directory (default: ./pod-data)'));
-    console.log(chalk.green('  --multiuser') + chalk.dim('            Enable multi-user mode'));
+    console.log(chalk.green('  --multi-user') + chalk.dim('           Enable multi-user mode'));
     console.log(chalk.green('  --no-auth') + chalk.dim('              Disable authentication'));
     console.log(chalk.green('  --no-open') + chalk.dim('              Do not open the browser automatically'));
     console.log(chalk.green('  --no-git') + chalk.dim('               Disable JSS\'s git HTTP backend (it is on by default)'));
@@ -385,7 +385,7 @@ for (let i = 0; i < args.length; i++) {
     console.log(chalk.white('Examples:'));
     console.log(chalk.dim('  nosdav'));
     console.log(chalk.dim('  nosdav --port 8080 --root /var/pods'));
-    console.log(chalk.dim('  nosdav --multiuser\n'));
+    console.log(chalk.dim('  nosdav --multi-user\n'));
     console.log(chalk.white('Features:'));
     console.log(chalk.dim('  • Solid Protocol compliant'));
     console.log(chalk.dim('  • WebID authentication'));
@@ -605,7 +605,7 @@ if (options.multiuser) {
   // Default: single-user personal pod with rung-1 credentials seeded.
   // The pod, IDP, and known credentials are created on first start;
   // every subsequent start is a no-op (JSS is idempotent on the seed).
-  jssArgs.push('--no-multiuser', '--single-user');
+  jssArgs.push('--no-multi-user', '--single-user');
   if (options.auth) {
     jssArgs.push('--idp');
     // Pass the rung-1 placeholder on argv (it has no secrecy property
